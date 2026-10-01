@@ -1,0 +1,229 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Budgeto custom */
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+}
+
+/* ─── LIGHT MODE: kertas hangat, bersih premium ─── */
+:root {
+  --radius: 0.8rem;
+  --background: oklch(0.982 0.004 100);
+  --foreground: oklch(0.23 0.012 155);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.23 0.012 155);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.23 0.012 155);
+  --primary: oklch(0.6 0.13 158);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.962 0.005 130);
+  --secondary-foreground: oklch(0.3 0.02 150);
+  --muted: oklch(0.955 0.006 130);
+  --muted-foreground: oklch(0.51 0.015 150);
+  --accent: oklch(0.945 0.033 156);
+  --accent-foreground: oklch(0.32 0.06 155);
+  --destructive: oklch(0.58 0.2 25);
+  --border: oklch(0.912 0.008 130);
+  --input: oklch(0.9 0.008 130);
+  --ring: oklch(0.6 0.13 158);
+  --income: oklch(0.58 0.13 156);
+  --expense: oklch(0.56 0.19 22);
+  --card-shadow: 0 1px 2px oklch(0.3 0.02 150 / 0.05), 0 4px 16px oklch(0.3 0.02 150 / 0.05);
+}
+
+/* ─── DARK MODE: hitam pekat kebiruan, aksen mint menyala ─── */
+.dark {
+  --background: oklch(0.16 0.008 240);
+  --foreground: oklch(0.94 0.006 130);
+  --card: oklch(0.209 0.008 235);
+  --card-foreground: oklch(0.94 0.006 130);
+  --popover: oklch(0.225 0.009 235);
+  --popover-foreground: oklch(0.94 0.006 130);
+  --primary: oklch(0.77 0.15 162);
+  --primary-foreground: oklch(0.16 0.03 160);
+  --secondary: oklch(0.262 0.008 235);
+  --secondary-foreground: oklch(0.9 0.006 130);
+  --muted: oklch(0.262 0.008 235);
+  --muted-foreground: oklch(0.63 0.012 130);
+  --accent: oklch(0.29 0.03 165);
+  --accent-foreground: oklch(0.86 0.1 160);
+  --destructive: oklch(0.66 0.19 25);
+  --border: oklch(0.295 0.01 235);
+  --input: oklch(0.305 0.01 235);
+  --ring: oklch(0.77 0.15 162);
+  --income: oklch(0.79 0.15 161);
+  --expense: oklch(0.71 0.18 24);
+  --card-shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 6px 20px oklch(0 0 0 / 0.25);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply text-foreground;
+    font-size: 14px;
+    overscroll-behavior-y: none;
+    background-color: var(--background);
+  }
+  /* Latar berlapis: wash gradasi lembut di atas + glow bawah (Light) */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(520px 340px at 85% -8%, oklch(0.9 0.06 160 / 0.5), transparent 65%),
+      radial-gradient(420px 300px at -10% 12%, oklch(0.92 0.05 200 / 0.4), transparent 60%),
+      var(--background);
+  }
+  .dark body::before {
+    background:
+      radial-gradient(560px 360px at 85% -10%, oklch(0.42 0.07 165 / 0.16), transparent 65%),
+      radial-gradient(460px 320px at -12% 14%, oklch(0.4 0.06 220 / 0.1), transparent 60%),
+      var(--background);
+  }
+  /* angka rapi sejajar */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    background: oklch(0.7 0.13 160 / 0.35);
+  }
+}
+
+@layer utilities {
+  /* scrollbar tipis minimalis */
+  .thin-scroll::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .thin-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  .thin-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .thin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  /* safe area untuk iPhone notched */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* kartu premium: border halus + bayangan ambient */
+  .card-soft {
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+  }
+  /* teks gradasi */
+  .grad-text {
+    background: linear-gradient(120deg, var(--primary), oklch(0.72 0.13 185));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* kilau menyapu untuk kartu hero */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.16) 46%, rgba(255, 255, 255, 0.05) 54%, transparent 70%);
+    transform: translateX(-120%);
+    animation: shine-sweep 5.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  /* titik-titik halus di kartu hero */
+  .dots {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+}
+
+/* ── Animasi masuk bertahap ── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.anim-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.d1 { animation-delay: 0.03s; }
+.d2 { animation-delay: 0.07s; }
+.d3 { animation-delay: 0.11s; }
+.d4 { animation-delay: 0.15s; }
+.d5 { animation-delay: 0.19s; }
+.d6 { animation-delay: 0.23s; }
+
+@keyframes shine-sweep {
+  0%, 55% { transform: translateX(-120%); }
+  75%, 100% { transform: translateX(120%); }
+}
+
+/* animasi FAB & sheet halus */
+@keyframes fab-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.fab-pop {
+  animation: fab-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* denyut halus glow FAB */
+@keyframes fab-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.12); }
+}
+.fab-glow { animation: fab-glow 2.6s ease-in-out infinite; }
+
+/* hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

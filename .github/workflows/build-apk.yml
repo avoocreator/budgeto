@@ -1,0 +1,83 @@
+name: Build APK Budgeto
+
+# Membuat APK Android otomatis (gratis) setiap kali code di-push ke branch main.
+# APK muncul di tab "Releases" repo dengan nama Budgeto.apk
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # tombol "Run workflow" manual di tab Actions
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Pasang Bun (package manager)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Pasang Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Pasang Java 21 (wajib untuk Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Build web (static export)
+        run: bun run build
+
+      - name: Copy web ke project Android
+        run: npx cap sync android
+
+      - name: Tulis konfigurasi widget dari Secrets (opsional)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          WIDGET_TOKEN: ${{ secrets.WIDGET_TOKEN }}
+        run: |
+          {
+            echo "budgetoSupabaseUrl=${SUPABASE_URL:-}"
+            echo "budgetoSupabaseAnonKey=${SUPABASE_ANON_KEY:-}"
+            echo "budgetoWidgetToken=${WIDGET_TOKEN:-}"
+          } >> android/gradle.properties
+
+      - name: Build APK (debug, bisa langsung di-install)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Siapkan file APK
+        run: |
+          mkdir -p apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk apk/Budgeto.apk
+          ls -lh apk/
+
+      - name: Upload artifact (bisa diunduh dari tab Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Budgeto-APK
+          path: apk/Budgeto.apk
+
+      - name: Buat/perbarui Release "latest" (APK bisa diunduh semua orang)
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: "Budgeto APK (terbaru)"
+          files: apk/Budgeto.apk
