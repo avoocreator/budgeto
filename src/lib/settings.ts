@@ -66,7 +66,7 @@ const DEFAULTS: Settings = {
   autoLockDelay: 60,
   biometricEnabled: false,
   privacyMode: false,
-  notificationsEnabled: true,
+  notificationsEnabled: false,
   txNotif: true,
   budgetAlerts: true,
   dailyReminder: true,
@@ -86,6 +86,15 @@ export const useSettings = create<SettingsState>()(
       set: (key, value) => set({ [key]: value } as Partial<Settings>),
       reset: () => set({ ...DEFAULTS }),
     }),
-    { name: "budgeto-settings-v3" }
+    {
+      name: "budgeto-settings-v3",
+      version: 1,
+      // v0 → v1: notifikasi default mati (user nyalakan sendiri, sekaligus memicu dialog izin)
+      migrate: (persisted, version) => {
+        const st = (persisted ?? {}) as Partial<SettingsState>;
+        if (version < 1) st.notificationsEnabled = false;
+        return st as SettingsState;
+      },
+    }
   )
 );

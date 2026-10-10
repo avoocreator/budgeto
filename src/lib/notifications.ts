@@ -9,6 +9,7 @@
 "use client";
 
 import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 /** True saat berjalan di dalam APK (Capacitor), false di browser/PWA. */
 export function isNativeApp(): boolean {
@@ -26,8 +27,15 @@ const DAILY_REMINDER_ID = 1001;
 let channelReady = false;
 
 async function nativePlugin() {
-  const { LocalNotifications } = await import("@capacitor/local-notifications");
   return LocalNotifications;
+}
+
+/** Cegah menggantung selamanya bila bridge native tidak merespons. */
+function withTimeout<T>(p: Promise<T>, label: string, ms = 6000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`TIMEOUT di langkah: ${label}`)), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
 }
 
 async function ensureChannel(): Promise<void> {
@@ -89,8 +97,23 @@ export async function requestPermission(): Promise<NotificationPermission> {
 
 let swRegistration: ServiceWorkerRegistration | null = null;
 
+async function cleanupSwInApk(): Promise<void> {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    if (typeof caches !== "undefined") {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch { /* abaikan */ }
+}
+
 export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
+  // Di APK aset sudah lokal; service worker hanya menyajikan cache lama yang basi.
+  if (isNativeApp()) { void cleanupSwInApk(); return null; }
   if (swRegistration) return swRegistration;
   try {
     swRegistration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
@@ -195,34 +218,47 @@ export async function fireDailyReminder(): Promise<void> {
 // ─── Diagnosa (tombol "Tes notifikasi" di Pengaturan) ────────
 export async function diagnoseNotifications(): Promise<string> {
   const out: string[] = [];
-  const native = isNativeApp();
-  out.push(`native: ${native ? "ya" : "TIDAK"}`);
-  if (!native) {
-    out.push(`izin web: ${typeof Notification !== "undefined" ? Notification.permission : "n/a"}`);
-    return out.join(" | ");
-  }
+  let step = "mulai";
   try {
-    const ln = await nativePlugin();
-    const before = await ln.checkPermissions();
+    const native = isNativeApp();
+    out.push(`platform: ${Capacitor.getPlatform()}`);
+    out.push(`native: ${native ? "ya" : "TIDAK"}`);
+    if (!native) {
+      out.push(`izin web: ${typeof Notification !== "undefined" ? Notification.permission : "n/a"}`);
+      return out.join(" | ");
+    }
+    out.push(`plugin: ${Capacitor.isPluginAvailable("LocalNotifications") ? "terdaftar" : "TIDAK TERDAFTAR"}`);
+
+    step = "cek izin";
+    const before = await withTimeout(LocalNotifications.checkPermissions(), step);
     out.push(`izin: ${before.display}`);
     if (before.display !== "granted") {
-      const r = await ln.requestPermissions();
+      step = "minta izin";
+      const r = await withTimeout(LocalNotifications.requestPermissions(), step, 30000);
       out.push(`setelah diminta: ${r.display}`);
       if (r.display !== "granted") return out.join(" | ");
     }
-    await ln.createChannel({ id: CHANNEL_ID, name: "Budgeto", importance: 4, visibility: 1, vibration: true });
+
+    step = "buat channel";
+    await withTimeout(LocalNotifications.createChannel({ id: CHANNEL_ID, name: "Budgeto", importance: 4, visibility: 1, vibration: true }), step);
     out.push("channel: ok");
-    await ln.schedule({
+
+    step = "kirim notif";
+    await withTimeout(LocalNotifications.schedule({
       notifications: [{
         id: 1002,
         title: "Tes Budgeto",
         body: "Kalau ini muncul di bar atas HP, notifikasi sudah jalan ✓",
         channelId: CHANNEL_ID,
       }],
-    });
+    }), step);
     out.push("terkirim ke sistem");
+
+    step = "baca daftar tertunda";
+    const pending = await withTimeout(LocalNotifications.getPending(), step);
+    out.push(`tertunda: ${pending.notifications.length}`);
   } catch (e) {
-    out.push(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
+    out.push(`ERROR (${step}): ${e instanceof Error ? e.message : String(e)}`);
   }
   return out.join(" | ");
 }

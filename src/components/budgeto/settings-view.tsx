@@ -32,6 +32,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [notifDiag, setNotifDiag] = useState("");
   const [syncInfo, setSyncInfo] = useState(getSyncState());
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -157,11 +158,17 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
           )}
           <Toggle label={dict.notifBills} checked={s.billReminders} onChange={(v) => set("billReminders", v)} disabled={!s.notificationsEnabled} />
           <button
-            onClick={() => void diagnoseNotifications().then((r) => toast.message("Hasil tes notifikasi", { description: r, duration: 20000 }))}
+            onClick={() => {
+              setNotifDiag("Menjalankan tes…");
+              void diagnoseNotifications().then((r) => setNotifDiag(r));
+            }}
             className="w-full rounded-xl bg-surface2 py-2.5 text-xs font-bold"
           >
             Tes notifikasi
           </button>
+          {notifDiag && (
+            <p className="break-words rounded-xl bg-surface2 p-2.5 text-[10px] leading-relaxed text-muted-foreground">{notifDiag}</p>
+          )}
         </div>
       </Section>
 
