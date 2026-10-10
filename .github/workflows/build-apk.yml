@@ -41,7 +41,7 @@ jobs:
         run: bun run build
 
       - name: Copy web ke project Android
-        run: npx cap sync android
+        run: bunx cap sync android
 
       - name: Tulis konfigurasi widget dari Secrets (opsional)
         env:
