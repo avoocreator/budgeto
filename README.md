@@ -1,49 +1,126 @@
-# 💰 Budgeto — Catatan Keuangan Pribadi (v2)
+# 💰 Budgeto
 
-Aplikasi catatan keuangan pribadi yang bisa di-install seperti aplikasi asli di HP: **offline-first, gratis 100%, tanpa iklan, tanpa Apps Script lagi.**
+### Take Control of Your Money.
 
-![Budgeto](public/icons/icon-192.png)
+Budgeto is a modern, offline-first personal finance application designed to make managing money simple, intuitive, and accessible. Track income and expenses, manage multiple wallets, set budgets, build savings, and understand your financial habits through a clean and minimalist interface.
 
-## ✨ Fitur
+Free to use, ad-free, and designed to keep your finances accessible even without an internet connection.
 
-- 📊 **Dashboard** — saldo total, pemasukan/pengeluaran bulan ini, budget, target tabungan
-- ⚡ **Catat super cepat** — tombol + besar, kategori satu ketukan, form bottom-sheet ala native
-- 🌗 **Dark mode & Light mode** — desain compact minimalis
-- 💸 **Multi dompet** — tunai, bank, e-wallet + transfer antar dompet
-- 🎯 **Budget per kategori** — progress bar + notifikasi peringatan 80% & 100%
-- 🐷 **Target tabungan** — dengan setor berkala & perayaan target tercapai
-- 📈 **Laporan** — tren 6 bulan, komposisi kategori, aktivitas harian, insight
-- 🔔 **Notifikasi** — tiap transaksi, peringatan budget, pengingat harian
-- ☁️ **Cloud sync opsional** — backup otomatis & multi-device via Supabase free tier (email OTP, aman dengan RLS)
-- 📴 **Offline penuh** — data tersimpan di perangkat (IndexedDB), jalan tanpa internet
-- 📲 **PWA** — install langsung dari browser, shortcut cepat dengan tekan-lama ikon
-- 🤖 **APK + Widget Android** — widget layar utama dengan saldo live & tombol catat cepat (build otomatis gratis via GitHub Actions)
-- 📤 **Ekspor/Impor** — backup JSON + ekspor CSV untuk Excel/Sheets
+## ✨ Features
 
-## 🚀 Mulai Cepat
+- **Financial Dashboard** — View your total balance, monthly income and expenses, budgets, and savings goals in one place.
+- **Quick Transactions** — Record income and expenses with a streamlined transaction interface.
+- **Multi-Wallet Management** — Organize cash, bank accounts, and e-wallets while supporting transfers between wallets.
+- **Smart Budgeting** — Set category-based budgets and monitor spending with progress indicators and notifications at 80% and 100% usage.
+- **Savings Goals** — Create savings targets, track contributions, and monitor your progress toward financial goals.
+- **Financial Analytics** — Explore spending breakdowns, daily activity, six-month trends, and financial insights.
+- **Reminders & Notifications** — Stay informed about transactions, budget limits, and daily financial routines.
+- **Offline-First Experience** — Manage locally stored financial data without an internet connection.
+- **Optional Cloud Sync** — Synchronize and back up financial data across devices using Supabase.
+- **Progressive Web App** — Install Budgeto from a supported browser for an app-like experience.
+- **Android Widget** — Access balance information and quick transaction actions from your home screen.
+- **Data Portability** — Import and export JSON backups and export transactions to CSV.
+- **Personalized Appearance** — Switch between dark and light themes.
 
-Semua langkah setup (deploy hosting gratis, cloud sync, sampai bikin APK + widget) ada di **[PANDUAN.md](./PANDUAN.md)** — ditulis untuk tanpa menyentuh kode sama sekali.
+## 🚀 Getting Started
 
-Versi singkat untuk developer:
+### Prerequisites
+
+- [Git](https://git-scm.com/)
+- [Bun](https://bun.sh/)
+
+### Installation
+
+Clone the repository and navigate to the project directory:
+
+```bash
+git clone https://github.com/avoocreator/budgeto.git
+cd budgeto
+```
+
+Install the dependencies:
 
 ```bash
 bun install
-bun run dev        # http://localhost:3000
-bun run build      # static export ke folder out/
-npx cap sync android
 ```
 
-## 🏗️ Teknologi
+Start the development server:
 
-- **Next.js 16** (App Router, static export) + TypeScript
-- **Dexie.js** (IndexedDB) — database lokal offline-first
-- **Supabase** (opsional) — cloud sync + auth email OTP dengan Row Level Security
-- **Tailwind CSS 4 + shadcn/ui** — compact minimalist design
-- **Recharts** — grafik laporan
-- **next-themes** — dark/light mode
-- **Capacitor** — pembungkus APK Android + home-screen widget
-- **GitHub Actions** — CI auto-build APK gratis
+```bash
+bun run dev
+```
 
-## 🗂️ Struktur
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Lihat bagian akhir [PANDUAN.md](./PANDUAN.md).
+### Production Build
+
+Build the application for production:
+
+```bash
+bun run build
+```
+
+To serve the generated production output locally:
+
+```bash
+bun run start
+```
+
+## 📖 How to Use Budgeto
+
+**1. Set Up Your Wallets**
+
+Create wallets to organize your available funds, such as cash, bank accounts, and e-wallets.
+
+**2. Record Your Transactions**
+
+Add income and expenses, assign categories, select the appropriate wallet, and include additional details when needed.
+
+**3. Manage Your Budgets**
+
+Create spending limits for different categories and monitor your usage through the dashboard.
+
+**4. Track Your Savings**
+
+Set financial goals, record contributions, and monitor your progress toward each target.
+
+**5. Analyze Your Finances**
+
+Use reports and visualizations to understand spending patterns, review cash flow, and identify areas where you can improve your financial habits.
+
+**6. Manage Your Data**
+
+Export your financial records for backup or further analysis. Configure optional cloud synchronization when you need to access your data across devices.
+
+## 🎨 Design Philosophy
+
+Budgeto emphasizes simplicity, clarity, and functionality. Its compact, minimalist interface keeps essential financial information accessible without unnecessary visual clutter.
+
+Every interaction is designed to make recording transactions and understanding personal finances feel straightforward, encouraging consistent and informed financial habits.
+
+## 🔒 Privacy & Data
+
+Budgeto follows an offline-first approach, using IndexedDB for local data storage. Core local data management does not require a continuous internet connection.
+
+Cloud synchronization is optional and powered by Supabase. Its authentication and Row Level Security (RLS) capabilities help protect user data when cloud features are configured.
+
+Users should maintain their own backups and protect any credentials associated with their cloud configuration.
+
+## 🛠️ Built With
+
+- **Next.js** — Application framework
+- **TypeScript** — Type-safe development
+- **Tailwind CSS** — Styling and responsive layouts
+- **shadcn/ui** — Interface components
+- **Dexie.js** — Local IndexedDB storage
+- **Supabase** — Optional authentication and cloud synchronization
+- **Recharts** — Financial charts and analytics
+- **next-themes** — Dark and light theme management
+- **Capacitor** — Android application integration
+- **GitHub Actions** — Automated Android builds
+
+## 🎯 Our Goal
+
+Budgeto aims to make personal finance management more approachable by combining practical financial tools, thoughtful design, offline accessibility, and user-focused privacy in one application.
+
+**Budgeto — Understand your money. Build better habits.**
