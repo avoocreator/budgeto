@@ -13,7 +13,7 @@ import { currentPeriod } from "./period";
 import { periodLabel } from "./period";
 import { todayStr } from "./format";
 import { scheduleSync } from "./sync";
-import { notify, budgetAlertFlags } from "./notifications";
+import { notify, budgetAlertFlags, logNotif } from "./notifications";
 import { useSettings } from "./settings";
 import { pushWidgetSnapshot } from "./widget";
 import { firstOccurrence } from "./recurring";
@@ -83,7 +83,7 @@ export async function restoreTransaction(tx: Transaction): Promise<void> {
 
 async function fireTxNotification(tx: Transaction): Promise<void> {
   const s = useSettings.getState();
-  if (!s.notificationsEnabled || !s.txNotif) return;
+  if (!s.notificationsEnabled || !s.txNotif) { logNotif(`transaksi dilewati: aktif=${s.notificationsEnabled} txNotif=${s.txNotif}`); return; }
   if (tx.type === "transfer") {
     void notify("Transfer dicatat", `Antar dompet sebesar Rp${tx.amount.toLocaleString("id-ID")}`, "wallet");
     return;
@@ -97,7 +97,7 @@ async function fireTxNotification(tx: Transaction): Promise<void> {
 /** Peringatan budget 80% & 100% (sekali per level per periode). */
 export async function checkBudgetAlerts(): Promise<void> {
   const s = useSettings.getState();
-  if (!s.notificationsEnabled || !s.budgetAlerts) return;
+  if (!s.notificationsEnabled || !s.budgetAlerts) { logNotif(`budget dilewati: aktif=${s.notificationsEnabled} budgetAlerts=${s.budgetAlerts}`); return; }
   const [budgets, txs, cats] = await Promise.all([
     db.budgets.toArray(), db.transactions.toArray(), db.categories.toArray(),
   ]);

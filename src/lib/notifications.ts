@@ -10,6 +10,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { toast } from "sonner";
 
 /** True saat berjalan di dalam APK (Capacitor), false di browser/PWA. */
 export function isNativeApp(): boolean {
@@ -17,6 +18,26 @@ export function isNativeApp(): boolean {
     return Capacitor.isNativePlatform();
   } catch {
     return false;
+  }
+}
+
+const LOG_KEY = "budgeto-notif-log";
+
+/** Catatan singkat (8 terakhir) untuk diagnosa — tampil di Pengaturan → Tes notifikasi. */
+export function logNotif(msg: string): void {
+  try {
+    const t = new Date().toTimeString().slice(0, 8);
+    const arr: string[] = JSON.parse(localStorage.getItem(LOG_KEY) ?? "[]");
+    arr.push(`${t} ${msg}`);
+    localStorage.setItem(LOG_KEY, JSON.stringify(arr.slice(-8)));
+  } catch { /* abaikan */ }
+}
+
+export function readNotifLog(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(LOG_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
   }
 }
 
@@ -42,14 +63,14 @@ async function ensureChannel(): Promise<void> {
   if (channelReady) return;
   try {
     const ln = await nativePlugin();
-    await ln.createChannel({
+    await withTimeout(ln.createChannel({
       id: CHANNEL_ID,
       name: "Budgeto",
       description: "Pengingat, peringatan budget, dan catatan transaksi",
       importance: 4,
       visibility: 1,
       vibration: true,
-    });
+    }), "buat channel");
     channelReady = true;
   } catch { /* channel opsional — notifikasi tetap jalan dengan channel default */ }
 }
@@ -125,26 +146,27 @@ export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
 
 /** Tampilkan notifikasi: selalu toast in-app; system notification bila izin ada. */
 export async function notify(title: string, body: string, icon = "wallet"): Promise<void> {
-  try {
-    const { toast } = await import("sonner");
-    toast(title, { description: body });
-  } catch { /* toast opsional */ }
+  logNotif(`notify: ${title}`);
+  // Toast statis & sinkron — tidak boleh memblokir notifikasi sistem.
+  try { toast(title, { description: body }); } catch { /* toast opsional */ }
 
   if (isNativeApp()) {
     try {
-      const ln = await nativePlugin();
-      const { display } = await ln.checkPermissions();
-      if (display !== "granted") return;
+      const { display } = await withTimeout(LocalNotifications.checkPermissions(), "cek izin");
+      if (display !== "granted") { logNotif(`dilewati: izin ${display}`); return; }
       await ensureChannel();
-      await ln.schedule({
+      await withTimeout(LocalNotifications.schedule({
         notifications: [{
-          id: Math.floor(Math.random() * 2_000_000_000) + 2000, // harus int 32-bit, jangan bentrok dengan 1001
+          id: Math.floor(Math.random() * 2_000_000_000) + 2000, // int 32-bit, jangan bentrok dengan 1001/1002
           title,
           body,
           channelId: CHANNEL_ID,
         }],
-      });
-    } catch { /* notifikasi native gagal — toast sudah muncul */ }
+      }), "kirim notif");
+      logNotif("terkirim ke sistem");
+    } catch (e) {
+      logNotif(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
+    }
     return;
   }
 
@@ -216,7 +238,7 @@ export async function fireDailyReminder(): Promise<void> {
 }
 
 // ─── Diagnosa (tombol "Tes notifikasi" di Pengaturan) ────────
-export async function diagnoseNotifications(): Promise<string> {
+async function runDiagnose(): Promise<string> {
   const out: string[] = [];
   let step = "mulai";
   try {
@@ -261,4 +283,10 @@ export async function diagnoseNotifications(): Promise<string> {
     out.push(`ERROR (${step}): ${e instanceof Error ? e.message : String(e)}`);
   }
   return out.join(" | ");
+}
+
+export async function diagnoseNotifications(): Promise<string> {
+  const main = await runDiagnose();
+  const log = readNotifLog();
+  return `${main} || LOG: ${log.length ? log.join(" ; ") : "(kosong — notify() belum pernah dipanggil)"}`;
 }
