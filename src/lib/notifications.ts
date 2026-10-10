@@ -8,6 +8,44 @@
 
 "use client";
 
+import { Capacitor } from "@capacitor/core";
+
+/** True saat berjalan di dalam APK (Capacitor), false di browser/PWA. */
+export function isNativeApp(): boolean {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
+// WebView Android TIDAK mendukung Web Notification API / izin notifikasi web,
+// jadi di APK notifikasi memakai plugin native @capacitor/local-notifications.
+const CHANNEL_ID = "budgeto-default";
+const DAILY_REMINDER_ID = 1001;
+let channelReady = false;
+
+async function nativePlugin() {
+  const { LocalNotifications } = await import("@capacitor/local-notifications");
+  return LocalNotifications;
+}
+
+async function ensureChannel(): Promise<void> {
+  if (channelReady) return;
+  try {
+    const ln = await nativePlugin();
+    await ln.createChannel({
+      id: CHANNEL_ID,
+      name: "Budgeto",
+      description: "Pengingat, peringatan budget, dan catatan transaksi",
+      importance: 4,
+      visibility: 1,
+      vibration: true,
+    });
+    channelReady = true;
+  } catch { /* channel opsional — notifikasi tetap jalan dengan channel default */ }
+}
+
 export const budgetAlertFlags = {
   getFlag(budgetId: string, periodKey: string): number {
     try {
@@ -24,6 +62,20 @@ export const budgetAlertFlags = {
 };
 
 export async function requestPermission(): Promise<NotificationPermission> {
+  if (isNativeApp()) {
+    try {
+      const ln = await nativePlugin();
+      let { display } = await ln.checkPermissions();
+      // Android 13+: dialog izin sistem muncul di sini (hanya bila belum pernah ditolak 2x)
+      if (display === "prompt" || display === "prompt-with-rationale") {
+        ({ display } = await ln.requestPermissions());
+      }
+      if (display === "granted") await ensureChannel();
+      return display === "granted" ? "granted" : display === "denied" ? "denied" : "default";
+    } catch {
+      return "denied";
+    }
+  }
   if (typeof window === "undefined" || !("Notification" in window)) return "denied";
   if (Notification.permission === "default") {
     try {
@@ -54,6 +106,25 @@ export async function notify(title: string, body: string, icon = "wallet"): Prom
     const { toast } = await import("sonner");
     toast(title, { description: body });
   } catch { /* toast opsional */ }
+
+  if (isNativeApp()) {
+    try {
+      const ln = await nativePlugin();
+      const { display } = await ln.checkPermissions();
+      if (display !== "granted") return;
+      await ensureChannel();
+      await ln.schedule({
+        notifications: [{
+          id: Math.floor(Math.random() * 2_000_000_000) + 2000, // harus int 32-bit, jangan bentrok dengan 1001
+          title,
+          body,
+          channelId: CHANNEL_ID,
+        }],
+      });
+    } catch { /* notifikasi native gagal — toast sudah muncul */ }
+    return;
+  }
+
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
   try {
@@ -71,7 +142,34 @@ export async function notify(title: string, body: string, icon = "wallet"): Prom
 const REMINDER_KEY = "budgeto-last-reminder";
 
 export function scheduleDailyReminder(time: string, enabled: boolean): void {
-  if (!enabled || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
+
+  // APK: pakai alarm native berulang — tetap bunyi walau app ditutup
+  if (isNativeApp()) {
+    void (async () => {
+      try {
+        const ln = await nativePlugin();
+        await ln.cancel({ notifications: [{ id: DAILY_REMINDER_ID }] });
+        if (!enabled) return;
+        const { display } = await ln.checkPermissions();
+        if (display !== "granted") return;
+        await ensureChannel();
+        const [h, m] = time.split(":").map(Number);
+        await ln.schedule({
+          notifications: [{
+            id: DAILY_REMINDER_ID,
+            title: "Jangan lupa catat keuangan 💰",
+            body: "Ada pengeluaran hari ini yang belum dicatat di Budgeto?",
+            channelId: CHANNEL_ID,
+            schedule: { on: { hour: h || 20, minute: m || 0 }, allowWhileIdle: true },
+          }],
+        });
+      } catch { /* abaikan */ }
+    })();
+    return;
+  }
+
+  if (!enabled) return;
   const [h, m] = time.split(":").map(Number);
   const nowD = new Date();
   const target = new Date();

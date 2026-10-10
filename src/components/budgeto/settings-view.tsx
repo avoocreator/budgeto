@@ -145,7 +145,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
       {/* ── Notifikasi ── */}
       <Section icon={<Bell size={15} />} title={dict.notifications}>
         <div className="space-y-2 p-4">
-          <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission(); }} />
+          <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission().then((p) => { if (p === "denied") toast.error("Izin notifikasi ditolak. Aktifkan lewat Pengaturan HP → Aplikasi → Budgeto → Notifikasi."); }); }} />
           <Toggle label={dict.notifTx} checked={s.txNotif} onChange={(v) => set("txNotif", v)} disabled={!s.notificationsEnabled} />
           <Toggle label={dict.notifBudget} checked={s.budgetAlerts} onChange={(v) => set("budgetAlerts", v)} disabled={!s.notificationsEnabled} />
           <Toggle label={dict.notifDaily} checked={s.dailyReminder} onChange={(v) => set("dailyReminder", v)} disabled={!s.notificationsEnabled} />

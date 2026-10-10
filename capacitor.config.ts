@@ -7,6 +7,12 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    LocalNotifications: {
+      smallIcon: "ic_stat_budgeto",
+      iconColor: "#0d1210",
+    },
+  },
   server: {
     androidScheme: "https",
   },

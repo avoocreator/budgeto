@@ -160,10 +160,17 @@ export function AppShell() {
     return () => clearInterval(timer);
   }, [hydrated, onboarded]);
 
-  // Pengingat harian
+  // Minta izin notifikasi saat app dibuka (default setting = aktif, jadi izin harus diminta otomatis).
+  // Aman dipanggil berulang: dialog sistem hanya muncul bila izin masih "prompt".
   useEffect(() => {
-    if (!hydrated || !notificationsEnabled) return;
-    scheduleDailyReminder(reminderTime, dailyReminder);
+    if (!hydrated || !onboarded || !notificationsEnabled) return;
+    void requestPermission();
+  }, [hydrated, onboarded, notificationsEnabled]);
+
+  // Pengingat harian (dibatalkan otomatis di APK bila dimatikan)
+  useEffect(() => {
+    if (!hydrated) return;
+    scheduleDailyReminder(reminderTime, notificationsEnabled && dailyReminder);
   }, [hydrated, notificationsEnabled, dailyReminder, reminderTime]);
 
   // Scroll ke atas saat ganti view

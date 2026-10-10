@@ -1,0 +1,216 @@
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index bfcafaf..5f0fa46 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -60,4 +60,8 @@
+     <!-- Permissions -->
+ 
+     <uses-permission android:name="android.permission.INTERNET" />
++    <!-- Android 13+: wajib agar dialog izin notifikasi bisa muncul -->
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
++    <uses-permission android:name="android.permission.VIBRATE" />
++    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+ </manifest>
+diff --git a/android/app/src/main/res/drawable/ic_stat_budgeto.xml b/android/app/src/main/res/drawable/ic_stat_budgeto.xml
+new file mode 100644
+index 0000000..3f9bb32
+--- /dev/null
++++ b/android/app/src/main/res/drawable/ic_stat_budgeto.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M12,22c1.1,0 2,-0.9 2,-2h-4c0,1.1 0.89,2 2,2zM18,16v-5c0,-3.07 -1.64,-5.64 -4.5,-6.32V4c0,-0.83 -0.67,-1.5 -1.5,-1.5s-1.5,0.67 -1.5,1.5v0.68C7.63,5.36 6,7.92 6,11v5l-2,2v1h16v-1l-2,-2z" />
++</vector>
+diff --git a/capacitor.config.ts b/capacitor.config.ts
+index 65cae5e..3168fce 100644
+--- a/capacitor.config.ts
++++ b/capacitor.config.ts
+@@ -7,6 +7,12 @@ const config: CapacitorConfig = {
+   android: {
+     allowMixedContent: false,
+   },
++  plugins: {
++    LocalNotifications: {
++      smallIcon: "ic_stat_budgeto",
++      iconColor: "#0d1210",
++    },
++  },
+   server: {
+     androidScheme: "https",
+   },
+diff --git a/src/components/budgeto/app-shell.tsx b/src/components/budgeto/app-shell.tsx
+index 6eed235..30705ac 100644
+--- a/src/components/budgeto/app-shell.tsx
++++ b/src/components/budgeto/app-shell.tsx
+@@ -160,10 +160,17 @@ export function AppShell() {
+     return () => clearInterval(timer);
+   }, [hydrated, onboarded]);
+ 
+-  // Pengingat harian
++  // Minta izin notifikasi saat app dibuka (default setting = aktif, jadi izin harus diminta otomatis).
++  // Aman dipanggil berulang: dialog sistem hanya muncul bila izin masih "prompt".
+   useEffect(() => {
+-    if (!hydrated || !notificationsEnabled) return;
+-    scheduleDailyReminder(reminderTime, dailyReminder);
++    if (!hydrated || !onboarded || !notificationsEnabled) return;
++    void requestPermission();
++  }, [hydrated, onboarded, notificationsEnabled]);
++
++  // Pengingat harian (dibatalkan otomatis di APK bila dimatikan)
++  useEffect(() => {
++    if (!hydrated) return;
++    scheduleDailyReminder(reminderTime, notificationsEnabled && dailyReminder);
+   }, [hydrated, notificationsEnabled, dailyReminder, reminderTime]);
+ 
+   // Scroll ke atas saat ganti view
+diff --git a/src/components/budgeto/settings-view.tsx b/src/components/budgeto/settings-view.tsx
+index dc7f408..765ca46 100644
+--- a/src/components/budgeto/settings-view.tsx
++++ b/src/components/budgeto/settings-view.tsx
+@@ -145,7 +145,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
+       {/* ── Notifikasi ── */}
+       <Section icon={<Bell size={15} />} title={dict.notifications}>
+         <div className="space-y-2 p-4">
+-          <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission(); }} />
++          <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission().then((p) => { if (p === "denied") toast.error("Izin notifikasi ditolak. Aktifkan lewat Pengaturan HP → Aplikasi → Budgeto → Notifikasi."); }); }} />
+           <Toggle label={dict.notifTx} checked={s.txNotif} onChange={(v) => set("txNotif", v)} disabled={!s.notificationsEnabled} />
+           <Toggle label={dict.notifBudget} checked={s.budgetAlerts} onChange={(v) => set("budgetAlerts", v)} disabled={!s.notificationsEnabled} />
+           <Toggle label={dict.notifDaily} checked={s.dailyReminder} onChange={(v) => set("dailyReminder", v)} disabled={!s.notificationsEnabled} />
+diff --git a/src/lib/notifications.ts b/src/lib/notifications.ts
+index 2c5fa2a..848b47b 100644
+--- a/src/lib/notifications.ts
++++ b/src/lib/notifications.ts
+@@ -8,6 +8,44 @@
+ 
+ "use client";
+ 
++import { Capacitor } from "@capacitor/core";
++
++/** True saat berjalan di dalam APK (Capacitor), false di browser/PWA. */
++export function isNativeApp(): boolean {
++  try {
++    return Capacitor.isNativePlatform();
++  } catch {
++    return false;
++  }
++}
++
++// WebView Android TIDAK mendukung Web Notification API / izin notifikasi web,
++// jadi di APK notifikasi memakai plugin native @capacitor/local-notifications.
++const CHANNEL_ID = "budgeto-default";
++const DAILY_REMINDER_ID = 1001;
++let channelReady = false;
++
++async function nativePlugin() {
++  const { LocalNotifications } = await import("@capacitor/local-notifications");
++  return LocalNotifications;
++}
++
++async function ensureChannel(): Promise<void> {
++  if (channelReady) return;
++  try {
++    const ln = await nativePlugin();
++    await ln.createChannel({
++      id: CHANNEL_ID,
++      name: "Budgeto",
++      description: "Pengingat, peringatan budget, dan catatan transaksi",
++      importance: 4,
++      visibility: 1,
++      vibration: true,
++    });
++    channelReady = true;
++  } catch { /* channel opsional — notifikasi tetap jalan dengan channel default */ }
++}
++
+ export const budgetAlertFlags = {
+   getFlag(budgetId: string, periodKey: string): number {
+     try {
+@@ -24,6 +62,20 @@ export const budgetAlertFlags = {
+ };
+ 
+ export async function requestPermission(): Promise<NotificationPermission> {
++  if (isNativeApp()) {
++    try {
++      const ln = await nativePlugin();
++      let { display } = await ln.checkPermissions();
++      // Android 13+: dialog izin sistem muncul di sini (hanya bila belum pernah ditolak 2x)
++      if (display === "prompt" || display === "prompt-with-rationale") {
++        ({ display } = await ln.requestPermissions());
++      }
++      if (display === "granted") await ensureChannel();
++      return display === "granted" ? "granted" : display === "denied" ? "denied" : "default";
++    } catch {
++      return "denied";
++    }
++  }
+   if (typeof window === "undefined" || !("Notification" in window)) return "denied";
+   if (Notification.permission === "default") {
+     try {
+@@ -54,6 +106,25 @@ export async function notify(title: string, body: string, icon = "wallet"): Prom
+     const { toast } = await import("sonner");
+     toast(title, { description: body });
+   } catch { /* toast opsional */ }
++
++  if (isNativeApp()) {
++    try {
++      const ln = await nativePlugin();
++      const { display } = await ln.checkPermissions();
++      if (display !== "granted") return;
++      await ensureChannel();
++      await ln.schedule({
++        notifications: [{
++          id: Math.floor(Math.random() * 2_000_000_000) + 2000, // harus int 32-bit, jangan bentrok dengan 1001
++          title,
++          body,
++          channelId: CHANNEL_ID,
++        }],
++      });
++    } catch { /* notifikasi native gagal — toast sudah muncul */ }
++    return;
++  }
++
+   if (typeof window === "undefined" || !("Notification" in window)) return;
+   if (Notification.permission !== "granted") return;
+   try {
+@@ -71,7 +142,34 @@ export async function notify(title: string, body: string, icon = "wallet"): Prom
+ const REMINDER_KEY = "budgeto-last-reminder";
+ 
+ export function scheduleDailyReminder(time: string, enabled: boolean): void {
+-  if (!enabled || typeof window === "undefined") return;
++  if (typeof window === "undefined") return;
++
++  // APK: pakai alarm native berulang — tetap bunyi walau app ditutup
++  if (isNativeApp()) {
++    void (async () => {
++      try {
++        const ln = await nativePlugin();
++        await ln.cancel({ notifications: [{ id: DAILY_REMINDER_ID }] });
++        if (!enabled) return;
++        const { display } = await ln.checkPermissions();
++        if (display !== "granted") return;
++        await ensureChannel();
++        const [h, m] = time.split(":").map(Number);
++        await ln.schedule({
++          notifications: [{
++            id: DAILY_REMINDER_ID,
++            title: "Jangan lupa catat keuangan 💰",
++            body: "Ada pengeluaran hari ini yang belum dicatat di Budgeto?",
++            channelId: CHANNEL_ID,
++            schedule: { on: { hour: h || 20, minute: m || 0 }, allowWhileIdle: true },
++          }],
++        });
++      } catch { /* abaikan */ }
++    })();
++    return;
++  }
++
++  if (!enabled) return;
+   const [h, m] = time.split(":").map(Number);
+   const nowD = new Date();
+   const target = new Date();
