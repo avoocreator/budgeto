@@ -20,7 +20,7 @@ import { currentPeriod, periodLabel } from "@/lib/period";
 import { ACCENT_PRESETS, PALETTE } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card, Segmented, IconBubble } from "./ui-bits";
-import { requestPermission, notify } from "@/lib/notifications";
+import { requestPermission, notify, diagnoseNotifications } from "@/lib/notifications";
 import { ArrowLeft, Sun, Moon, Monitor, Palette, Languages, CalendarDays, ShieldCheck, Bell, DatabaseBackup, CloudUpload, TriangleAlert, Check, Loader2, CloudOff, Info } from "lucide-react";
 import { toast } from "sonner";
 
@@ -156,6 +156,12 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
             </label>
           )}
           <Toggle label={dict.notifBills} checked={s.billReminders} onChange={(v) => set("billReminders", v)} disabled={!s.notificationsEnabled} />
+          <button
+            onClick={() => void diagnoseNotifications().then((r) => toast.message("Hasil tes notifikasi", { description: r, duration: 20000 }))}
+            className="w-full rounded-xl bg-surface2 py-2.5 text-xs font-bold"
+          >
+            Tes notifikasi
+          </button>
         </div>
       </Section>
 

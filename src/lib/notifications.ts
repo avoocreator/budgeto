@@ -191,3 +191,38 @@ export async function fireDailyReminder(): Promise<void> {
   localStorage.setItem(REMINDER_KEY, today);
   void notify("Jangan lupa catat keuangan 💰", "Ada pengeluaran hari ini yang belum dicatat di Budgeto?", "piggy-bank");
 }
+
+// ─── Diagnosa (tombol "Tes notifikasi" di Pengaturan) ────────
+export async function diagnoseNotifications(): Promise<string> {
+  const out: string[] = [];
+  const native = isNativeApp();
+  out.push(`native: ${native ? "ya" : "TIDAK"}`);
+  if (!native) {
+    out.push(`izin web: ${typeof Notification !== "undefined" ? Notification.permission : "n/a"}`);
+    return out.join(" | ");
+  }
+  try {
+    const ln = await nativePlugin();
+    const before = await ln.checkPermissions();
+    out.push(`izin: ${before.display}`);
+    if (before.display !== "granted") {
+      const r = await ln.requestPermissions();
+      out.push(`setelah diminta: ${r.display}`);
+      if (r.display !== "granted") return out.join(" | ");
+    }
+    await ln.createChannel({ id: CHANNEL_ID, name: "Budgeto", importance: 4, visibility: 1, vibration: true });
+    out.push("channel: ok");
+    await ln.schedule({
+      notifications: [{
+        id: 1002,
+        title: "Tes Budgeto",
+        body: "Kalau ini muncul di bar atas HP, notifikasi sudah jalan ✓",
+        channelId: CHANNEL_ID,
+      }],
+    });
+    out.push("terkirim ke sistem");
+  } catch (e) {
+    out.push(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  return out.join(" | ");
+}
