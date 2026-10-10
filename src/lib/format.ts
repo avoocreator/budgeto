@@ -1,38 +1,35 @@
 // ============================================================
-// BUDGETO v2 — Formatting (mata uang & tanggal, locale Indonesia)
+// BUDGETO v3 — Formatting (mata uang & tanggal)
+// Nominal selalu angka tabular (tabular-nums diterapkan via CSS),
+// format mengikuti bahasa terpilih (Intl).
 // ============================================================
 
-export function formatMoney(amount: number, currency = "IDR", opts?: { compact?: boolean; signed?: boolean }): string {
+import type { Lang } from "./i18n";
+import { localeOf } from "./i18n";
+
+export const CURRENCY_SYMBOL = "Rp";
+
+export function formatMoney(amount: number, lang: Lang = "id", opts?: { compact?: boolean; signed?: boolean }): string {
   const abs = Math.abs(amount);
+  const loc = localeOf(lang);
   let body: string;
-  if (opts?.compact && abs >= 1_000_000_000) body = `${trimZero(abs / 1_000_000_000)}M`;
-  else if (opts?.compact && abs >= 1_000_000) body = `${trimZero(abs / 1_000_000)}jt`;
-  else if (opts?.compact && abs >= 1_000) body = `${trimZero(abs / 1_000)}rb`;
+  if (opts?.compact && abs >= 1_000_000_000) body = `${trimZero(abs / 1_000_000_000, loc)}${lang === "id" ? "M" : "B"}`;
+  else if (opts?.compact && abs >= 1_000_000) body = `${trimZero(abs / 1_000_000, loc)}${lang === "id" ? "jt" : "M"}`;
+  else if (opts?.compact && abs >= 1_000) body = `${trimZero(abs / 1_000, loc)}${lang === "id" ? "rb" : "K"}`;
   else {
-    body = new Intl.NumberFormat("id-ID", { maximumFractionDigits: abs % 1 === 0 ? 0 : 2 }).format(abs);
+    body = new Intl.NumberFormat(loc, { maximumFractionDigits: abs % 1 === 0 ? 0 : 2 }).format(abs);
   }
-  const symbol = currencySymbol(currency);
   const sign = amount < 0 ? "-" : opts?.signed ? "+" : "";
-  return `${sign}${symbol}${body}`;
+  return `${sign}${CURRENCY_SYMBOL}${body}`;
 }
 
-function trimZero(n: number): string {
-  return (Math.round(n * 10) / 10).toString().replace(".", ",");
+function trimZero(n: number, loc: string): string {
+  const rounded = Math.round(n * 10) / 10;
+  return new Intl.NumberFormat(loc, { maximumFractionDigits: 1 }).format(rounded);
 }
 
-export function currencySymbol(currency: string): string {
-  switch (currency) {
-    case "USD": return "$";
-    case "EUR": return "€";
-    case "SGD": return "S$";
-    case "MYR": return "RM";
-    case "JPY": return "¥";
-    default: return "Rp";
-  }
-}
-
-export function formatCompactMoney(amount: number): string {
-  return formatMoney(amount, "IDR", { compact: true });
+export function formatNumber(n: number, lang: Lang = "id"): string {
+  return new Intl.NumberFormat(localeOf(lang)).format(n);
 }
 
 // ─── Tanggal ─────────────────────────────────────────────────
@@ -41,6 +38,12 @@ export function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+export function nowTimeStr(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** offset bulan kalender terhadap hari ini (untuk laporan 6 bulan). */
 export function monthStr(offset = 0): string {
   const d = new Date();
   d.setDate(1);
@@ -48,52 +51,64 @@ export function monthStr(offset = 0): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-const DAY_NAMES = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-const MONTH_NAMES_FULL = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-export function formatDateLabel(dateStr: string, relative = true): string {
+export function formatDateLabel(dateStr: string, lang: Lang = "id", relative = true): string {
   const today = todayStr();
-  if (relative && dateStr === today) return "Hari ini";
-  if (relative && dateStr === addDays(today, -1)) return "Kemarin";
+  if (relative && dateStr === today) return lang === "id" ? "Hari ini" : "Today";
+  if (relative && dateStr === addDays(today, -1)) return lang === "id" ? "Kemarin" : "Yesterday";
   const [y, m, d] = dateStr.split("-").map(Number);
+  const months = lang === "id"
+    ? ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+    : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const now = new Date();
-  if (y === now.getFullYear()) return `${d} ${MONTH_NAMES[m - 1]}`;
-  return `${d} ${MONTH_NAMES[m - 1]} ${y}`;
+  if (y === now.getFullYear()) return `${d} ${months[m - 1]}`;
+  return `${d} ${months[m - 1]} ${y}`;
 }
 
-export function formatDateFull(dateStr: string): string {
+export function dayName(dateStr: string, lang: Lang = "id"): string {
   const [y, m, d] = dateStr.split("-").map(Number);
-  return `${DAY_NAMES[new Date(y, m - 1, d).getDay()]}, ${d} ${MONTH_NAMES_FULL[m - 1]} ${y}`;
-}
-
-export function monthLabel(ms: string, full = false): string {
-  const [y, m] = ms.split("-").map(Number);
-  const names = full ? MONTH_NAMES_FULL : MONTH_NAMES;
-  const now = new Date();
-  return y === now.getFullYear() ? names[m - 1] : `${names[m - 1]} ${String(y).slice(2)}`;
+  const names = lang === "id"
+    ? ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
+    : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  return names[new Date(y, m - 1, d).getDay()];
 }
 
 export function addDays(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + days);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  return toISO(dt);
 }
 
-export function daysInMonth(ms: string): number {
-  const [y, m] = ms.split("-").map(Number);
-  return new Date(y, m, 0).getDate();
+export function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function relativeTimeLabel(ts: number): string {
+export function daysInMonth(year: number, month1to12: number): number {
+  return new Date(year, month1to12, 0).getDate();
+}
+
+export function diffDays(fromStr: string, toStr: string): number {
+  const [fy, fm, fd] = fromStr.split("-").map(Number);
+  const [ty, tm, td] = toStr.split("-").map(Number);
+  const from = new Date(fy, fm - 1, fd).getTime();
+  const to = new Date(ty, tm - 1, td).getTime();
+  return Math.round((to - from) / 86400000);
+}
+
+export function relativeTimeLabel(ts: number, lang: Lang = "id"): string {
   const diff = Date.now() - ts;
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "baru saja";
-  if (min < 60) return `${min} menit lalu`;
+  const loc = localeOf(lang);
+  if (min < 1) return lang === "id" ? "baru saja" : "just now";
+  if (min < 60) return lang === "id" ? `${min} menit lalu` : `${min} min ago`;
   const h = Math.floor(min / 60);
-  if (h < 24) return `${h} jam lalu`;
+  if (h < 24) return lang === "id" ? `${h} jam lalu` : `${h} h ago`;
   const d = Math.floor(h / 24);
-  if (d < 7) return `${d} hari lalu`;
-  return formatDateLabel(new Date(ts).toISOString().slice(0, 10), false);
+  if (d < 7) return lang === "id" ? `${d} hari lalu` : `${d} d ago`;
+  return formatDateLabel(new Date(ts).toISOString().slice(0, 10), lang, false);
+}
+
+export function timeLabel(ts: number): string {
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`;
 }

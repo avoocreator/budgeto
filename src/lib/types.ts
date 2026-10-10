@@ -1,5 +1,7 @@
 // ============================================================
-// BUDGETO v2 — Type Definitions
+// BUDGETO v3 — Type Definitions
+// Mengikuti tech-stack.md 2.1: semua entri punya id (UUID klien),
+// createdAt/updatedAt (epoch ms), dan soft delete (deleted).
 // ============================================================
 
 export type TxType = "income" | "expense" | "transfer";
@@ -7,15 +9,16 @@ export type TxType = "income" | "expense" | "transfer";
 export interface Transaction {
   id: string;
   type: TxType;
-  amount: number; // selalu positif; arah ditentukan oleh type
+  amount: number; // selalu positif; arah ditentukan type
   categoryId: string | null; // null untuk transfer
   walletId: string;
-  toWalletId?: string | null; // hanya untuk transfer
-  date: string; // YYYY-MM-DD
+  toWalletId?: string | null; // hanya transfer
+  date: string; // "YYYY-MM-DD" (ISO, agar urutan & filter periode benar)
   note: string;
-  createdAt: number; // epoch ms
-  updatedAt: number; // epoch ms — dipakai untuk sinkronisasi LWW
-  deleted?: boolean; // soft delete agar sync aman
+  ruleId?: string | null; // dibuat oleh aturan berulang (F06)
+  createdAt: number;
+  updatedAt: number;
+  deleted?: boolean;
 }
 
 export interface Category {
@@ -43,7 +46,7 @@ export interface Wallet {
 export interface Budget {
   id: string;
   categoryId: string;
-  amount: number; // per bulan
+  amount: number; // per periode (F05)
   createdAt: number;
   updatedAt: number;
   deleted?: boolean;
@@ -54,10 +57,43 @@ export interface Goal {
   name: string;
   targetAmount: number;
   currentAmount: number;
-  deadline: string | null; // YYYY-MM-DD
+  deadline: string | null;
   icon: string;
   color: string;
   status: "active" | "achieved" | "archived";
+  createdAt: number;
+  updatedAt: number;
+  deleted?: boolean;
+}
+
+// ─── F06: Transaksi berulang ────────────────────────────────
+export type Frequency = "weekly" | "monthly";
+
+/** Tagihan menunggu konfirmasi (mode "confirm") */
+export interface PendingBill {
+  id: string;
+  ruleId: string;
+  dueDate: string; // YYYY-MM-DD
+  amount: number;
+  createdAt: number;
+}
+
+export interface RecurringRule {
+  id: string;
+  name: string;
+  type: "expense" | "income";
+  amount: number;
+  categoryId: string;
+  walletId: string;
+  frequency: Frequency;
+  dayOfMonth?: number; // 1-31 untuk monthly (29-31 di-clamp ke akhir bulan)
+  weekday?: number; // 0-6 untuk weekly
+  nextDate: string; // YYYY-MM-DD jatuh tempo berikutnya
+  mode: "auto" | "confirm"; // auto = langsung dicatat; confirm = minta konfirmasi
+  remindDaysBefore: number; // default 1 (H-1)
+  active: boolean;
+  lastPostedDate?: string | null; // guard duplikat
+  pending: PendingBill[]; // tagihan menunggu konfirmasi
   createdAt: number;
   updatedAt: number;
   deleted?: boolean;
@@ -69,26 +105,70 @@ export interface SettingRow {
   updatedAt: number;
 }
 
+// ─── Periode & dashboard (F01, F05) ─────────────────────────
+export type PeriodMode = "calendar" | "payday";
+
+export interface Period {
+  start: string; // YYYY-MM-DD inklusif
+  end: string; // YYYY-MM-DD inklusif
+}
+
+export type DailyStatus = "ok" | "warn" | "bad";
+
+export interface DailyRemaining {
+  amount: number;
+  status: DailyStatus;
+  ready: boolean; // false jika budget/payday belum diatur → tampilkan ajakan
+  period: Period;
+  remainingDays: number;
+  remainingBudget: number;
+  upcomingBills: number;
+  periodBudget: number;
+  spent: number;
+  dailyTarget: number; // rata-rata harian budget
+}
+
+// ─── Snapshot widget (F04) — kontrak di tech-stack.md 2.3 ───
+export interface WidgetSnapshot {
+  schema: 1;
+  updatedAt: string; // ISO dengan offset zona waktu
+  locale: string;
+  privacy: boolean;
+  theme: { mode: "light" | "dark" | "system"; preset: string };
+  daily: { amount: number; status: DailyStatus | "none"; untilDate: string | null };
+  budget: { usedPercent: number };
+  balance: number;
+  labels: {
+    today: string;
+    balance: string;
+    budget: string;
+    addExpense: string;
+    addIncome: string;
+    updated: string;
+  };
+}
+
 export interface AppData {
   transactions: Transaction[];
   categories: Category[];
   wallets: Wallet[];
   budgets: Budget[];
   goals: Goal[];
+  recurringRules: RecurringRule[];
   settings: SettingRow[];
 }
 
-export const CURRENCIES = [
-  { code: "IDR", symbol: "Rp", locale: "id-ID" },
-  { code: "USD", symbol: "$", locale: "en-US" },
-  { code: "EUR", symbol: "€", locale: "de-DE" },
-  { code: "SGD", symbol: "S$", locale: "en-SG" },
-  { code: "MYR", symbol: "RM", locale: "ms-MY" },
-  { code: "JPY", symbol: "¥", locale: "ja-JP" },
-] as const;
-
-// Palet warna kategori dompet (aman untuk light & dark)
+// Palet warna kategori/dompet (kontras aman di light & dark)
 export const PALETTE = [
   "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4",
   "#ec4899", "#84cc16", "#f97316", "#14b8a6", "#a855f7",
+] as const;
+
+export const ACCENT_PRESETS = [
+  { id: "emerald", label: "Emerald", swatch: "#34D399" },
+  { id: "ocean", label: "Ocean", swatch: "#22d3ee" },
+  { id: "sunset", label: "Sunset", swatch: "#fb923c" },
+  { id: "violet", label: "Violet", swatch: "#a78bfa" },
+  { id: "rose", label: "Rose", swatch: "#fb7185" },
+  { id: "gold", label: "Gold", swatch: "#fbbf24" },
 ] as const;

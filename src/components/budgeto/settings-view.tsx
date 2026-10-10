@@ -1,393 +1,489 @@
 // ============================================================
-// BUDGETO v2 — Pengaturan
+// BUDGETO v3 — Pengaturan
+// Tampilan (mode + 6 preset aksen, F03), Bahasa (F09), Periode &
+// tanggal gajian (F05, dengan pratinjau + peringatan), Keamanan
+// (PIN & privasi, F07), Notifikasi, Data & backup (JSON/CSV),
+// Sinkron cloud opsional, Zona berbahaya.
 // ============================================================
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
+import { useEffect, useRef, useState } from "react";
 import { useSettings } from "@/lib/settings";
-import { exportData, downloadJson, importData, resetAllData, toCsv } from "@/lib/repo";
-import { getWidgetToken } from "@/lib/sync";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useLang } from "@/lib/i18n";
+import { useLock, hashPin, verifyPin } from "@/lib/lock";
+import { saveWallet, exportData, importData, downloadFile, toCsv, resetAllData } from "@/lib/repo";
 import { db } from "@/lib/db";
-import { sendOtp, verifyOtp, signOutCloud, checkAuthState, syncNow, getSyncState, onSyncChange } from "@/lib/sync";
-import { requestPermission } from "@/lib/notifications";
-import { Card, SectionTitle } from "./ui-bits";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Moon, Sun, Monitor, Download, Upload, Trash2, Cloud, LogIn, LogOut, RefreshCw, BellRing, Share2, Smartphone, ChevronLeft, Info } from "lucide-react";
+import { pushWidgetSnapshot } from "@/lib/widget";
+import { sendOtp, verifyOtp, signOutCloud, getSessionEmail, syncNow, getSyncState, onSyncChange } from "@/lib/sync";
+import { currentPeriod, periodLabel } from "@/lib/period";
+import { ACCENT_PRESETS, PALETTE } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useHydrated } from "./use-hydrated";
+import { Card, Segmented, IconBubble } from "./ui-bits";
+import { requestPermission, notify } from "@/lib/notifications";
+import { ArrowLeft, Sun, Moon, Monitor, Palette, Languages, CalendarDays, ShieldCheck, Bell, DatabaseBackup, CloudUpload, TriangleAlert, Check, Loader2, CloudOff, Info } from "lucide-react";
+import { toast } from "sonner";
 
 export function SettingsView({ onBack }: { onBack: () => void }) {
-  const settings = useSettings();
-  const { theme, setTheme } = useTheme();
-  const mounted = useHydrated();
-  const [email, setEmail] = useState("");
+  const s = useSettings();
+  const set = useSettings((x) => x.set);
+  const lang = useLang((x) => sLangOf(x.lang));
+  const t = useLang((x) => x);
+  const [email, setEmail] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
-  const [syncState, setSyncState] = useState<{ state: string; message: string }>({ state: "unconfigured", message: "" });
-  const [syncing, setSyncing] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [importText, setImportText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [syncInfo, setSyncInfo] = useState(getSyncState());
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const txCount = useLiveQuery(async () => {
-    const all = await db.transactions.toArray();
-    return all.filter((t) => !t.deleted).length;
-  }, []);
+  const dict = t.lang === "en" ? enDict() : idDict();
 
-  useEffect(() => {
-    void checkAuthState().then(setLoggedInEmail);
-    const un = onSyncChange((state, message) => setSyncState({ state, message }));
-    return un;
-  }, []);
-
-  async function handleExport() {
-    const json = await exportData();
-    downloadJson(`budgeto-backup-${new Date().toISOString().slice(0, 10)}.json`, json);
-    toast.success("Backup JSON diunduh");
-  }
-
-  async function handleExportCsv() {
-    const [txs, cats] = await Promise.all([db.transactions.toArray(), db.categories.toArray()]);
-    const csv = toCsv(txs, cats);
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `budgeto-transaksi-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV diunduh (bisa dibuka di Excel/Sheets)");
-  }
-
-  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    const res = await importData(text);
-    if (res.ok) toast.success(res.message);
-    else toast.error(res.message);
-    e.target.value = "";
-  }
+  useEffect(() => { void getSessionEmail().then(setEmail); }, []);
+  useEffect(() => onSyncChange((state, message) => setSyncInfo({ state, message: message ?? "" })), []);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-xl" onClick={onBack} aria-label="Kembali">
-          <ChevronLeft size={20} />
-        </Button>
+    <div className="space-y-4 pb-2">
+      <div className="flex items-start gap-2.5 pb-1">
+        <button onClick={onBack} aria-label="Kembali" className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card ring-1 ring-border">
+          <ArrowLeft size={17} />
+        </button>
         <div>
-          <h1 className="text-base font-bold leading-tight">Pengaturan</h1>
-          <p className="text-xs text-muted-foreground">{txCount ?? "…"} transaksi tersimpan di perangkat ini</p>
+          <h1 className="text-lg font-extrabold tracking-tight">{dict.settings}</h1>
+          <p className="text-[11px] text-muted-foreground">Budgeto v3</p>
         </div>
       </div>
 
-      {/* Tampilan */}
-      <section>
-        <SectionTitle title="Tampilan" />
-        <Card className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              {mounted && theme === "dark" ? <Moon size={15} /> : mounted && theme === "light" ? <Sun size={15} /> : <Monitor size={15} />}
-              Tema
-            </div>
-            <div className="flex gap-1 rounded-xl bg-muted p-1">
-              {(["light", "dark", "system"] as const).map((t) => (
+      {/* ── Tampilan ── */}
+      <Section icon={<Palette size={15} />} title={dict.appearance}>
+        <div className="space-y-3 p-4">
+          <div>
+            <p className="pb-1.5 text-[11px] font-bold text-muted-foreground">{dict.themeMode}</p>
+            <Segmented
+              value={s.themeMode}
+              onChange={(v) => { set("themeMode", v); setTimeout(() => void pushWidgetSnapshot(), 60); }}
+              options={[
+                { value: "system", label: dict.system },
+                { value: "light", label: dict.light },
+                { value: "dark", label: dict.dark },
+              ]}
+            />
+          </div>
+          <div>
+            <p className="pb-1.5 text-[11px] font-bold text-muted-foreground">{dict.accent}</p>
+            <div className="flex flex-wrap gap-2">
+              {ACCENT_PRESETS.map((p) => (
                 <button
-                  key={t}
-                  onClick={() => setTheme(t)}
-                  className={cn("flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs transition-all", mounted && theme === t ? "bg-background font-medium shadow-sm" : "text-muted-foreground")}
+                  key={p.id}
+                  onClick={() => set("accent", p.id)}
+                  aria-pressed={s.accent === p.id}
+                  aria-label={p.label}
+                  className={cn("flex items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-3 text-[11px] font-bold transition-all",
+                    s.accent === p.id ? "bg-primary/12 text-primary ring-1 ring-primary/40" : "bg-surface2 text-muted-foreground")}
                 >
-                  {t === "light" && <Sun size={12} />}
-                  {t === "dark" && <Moon size={12} />}
-                  {t === "system" && <Monitor size={12} />}
-                  {t === "light" ? "Terang" : t === "dark" ? "Gelap" : "Auto"}
+                  <span className="h-4 w-4 rounded-full" style={{ backgroundColor: p.swatch }} />
+                  {p.label}
+                  {s.accent === p.id && <Check size={11} />}
                 </button>
               ))}
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium" htmlFor="nama">Nama kamu</label>
-            <Input id="nama" value={settings.userName} onChange={(e) => settings.set("userName", e.target.value)} placeholder="misal: Avo" className="h-8 w-40 rounded-lg text-sm" maxLength={30} />
-          </div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium" htmlFor="cur">Mata uang</label>
-            <select
-              id="cur"
-              value={settings.currency}
-              onChange={(e) => settings.set("currency", e.target.value)}
-              className="h-8 rounded-lg border bg-background px-2 text-sm outline-none"
-            >
-              <option value="IDR">Rupiah (Rp)</option>
-              <option value="USD">Dollar ($)</option>
-              <option value="EUR">Euro (€)</option>
-              <option value="SGD">Singapore $</option>
-              <option value="MYR">Ringgit (RM)</option>
-              <option value="JPY">Yen (¥)</option>
-            </select>
-          </div>
-        </Card>
-      </section>
+        </div>
+      </Section>
 
-      {/* Notifikasi */}
-      <section>
-        <SectionTitle title="Notifikasi" />
-        <Card className="space-y-3">
-          <SettingToggle
-            icon={BellRing}
-            title="Izinkan notifikasi HP"
-            subtitle={typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted" ? "Sudah aktif ✓" : "Klik untuk minta izin ke HP"}
-            checked={settings.notificationsEnabled && (typeof window === "undefined" || !("Notification" in window) || Notification.permission === "granted")}
-            onToggle={async () => {
-              if (!settings.notificationsEnabled) {
-                settings.set("notificationsEnabled", true);
-                const p = await requestPermission();
-                if (p === "granted") toast.success("Notifikasi aktif!");
-                else toast.warning("Izin notifikasi belum diberikan. Cek pengaturan browser.");
-              } else {
-                settings.set("notificationsEnabled", false);
-              }
+      {/* ── Bahasa ── */}
+      <Section icon={<Languages size={15} />} title={dict.language}>
+        <div className="p-4">
+          <Segmented
+            value={s.lang}
+            onChange={(v) => { set("lang", v); t.setLang(v); setTimeout(() => void pushWidgetSnapshot(), 60); }}
+            options={[
+              { value: "id", label: "Bahasa Indonesia" },
+              { value: "en", label: "English" },
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* ── Periode & gajian ── */}
+      <Section icon={<CalendarDays size={15} />} title={dict.periodPayday}>
+        <div className="space-y-3 p-4">
+          <div>
+            <p className="pb-1.5 text-[11px] font-bold text-muted-foreground">{dict.periodMode}</p>
+            <Segmented
+              value={s.periodMode}
+              onChange={(v) => set("periodMode", v)}
+              options={[
+                { value: "payday", label: dict.paydayMode },
+                { value: "calendar", label: dict.calendarMode },
+              ]}
+            />
+          </div>
+          {s.periodMode === "payday" && (
+            <label className="block">
+              <span className="pb-1 block text-[11px] font-bold text-muted-foreground">{dict.paydayDay}</span>
+              <input
+                inputMode="numeric"
+                value={s.payday}
+                onChange={(e) => set("payday", Math.min(31, Math.max(1, Number(e.target.value.replace(/\D/g, "")) || 1)))}
+                className="w-24 rounded-xl bg-surface2 px-3 py-2.5 text-sm font-extrabold outline-none ring-1 ring-border"
+              />
+            </label>
+          )}
+          <div className="rounded-xl bg-primary/8 p-3">
+            <p className="text-[10px] font-bold uppercase text-muted-foreground">{dict.periodPreview}</p>
+            <p className="text-xs font-extrabold text-primary">{periodLabel(currentPeriod(s.periodMode, s.payday), s.lang)}</p>
+          </div>
+          <p className="flex items-start gap-1.5 rounded-xl bg-warn/10 p-2.5 text-[10px] leading-relaxed text-warn">
+            <Info size={12} className="mt-0.5 shrink-0" />
+            {dict.periodChangeWarn}
+          </p>
+        </div>
+      </Section>
+
+      {/* ── Keamanan & privasi ── */}
+      <SecuritySection dict={dict} />
+
+      {/* ── Notifikasi ── */}
+      <Section icon={<Bell size={15} />} title={dict.notifications}>
+        <div className="space-y-2 p-4">
+          <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission(); }} />
+          <Toggle label={dict.notifTx} checked={s.txNotif} onChange={(v) => set("txNotif", v)} disabled={!s.notificationsEnabled} />
+          <Toggle label={dict.notifBudget} checked={s.budgetAlerts} onChange={(v) => set("budgetAlerts", v)} disabled={!s.notificationsEnabled} />
+          <Toggle label={dict.notifDaily} checked={s.dailyReminder} onChange={(v) => set("dailyReminder", v)} disabled={!s.notificationsEnabled} />
+          {s.dailyReminder && (
+            <label className="flex items-center justify-between pl-1">
+              <span className="text-xs font-semibold">{dict.reminderTime}</span>
+              <input type="time" value={s.reminderTime} onChange={(e) => set("reminderTime", e.target.value)} className="rounded-xl bg-surface2 px-3 py-2 text-xs font-bold outline-none" />
+            </label>
+          )}
+          <Toggle label={dict.notifBills} checked={s.billReminders} onChange={(v) => set("billReminders", v)} disabled={!s.notificationsEnabled} />
+        </div>
+      </Section>
+
+      {/* ── Data & backup ── */}
+      <Section icon={<DatabaseBackup size={15} />} title={dict.dataBackup}>
+        <div className="space-y-2.5 p-4">
+          <p className="rounded-xl bg-surface2 p-2.5 text-[10px] leading-relaxed text-muted-foreground">
+            {dict.backupHint} {dict.lastBackup}: {s.lastBackupAt ? new Date(s.lastBackupAt).toLocaleString(s.lang === "id" ? "id-ID" : "en-US") : dict.never}
+          </p>
+          <ActionRow
+            label={dict.exportJson}
+            onClick={async () => {
+              const json = await exportData();
+              downloadFile(`budgeto-backup-${new Date().toISOString().slice(0, 10)}.json`, json);
+              set("lastBackupAt", Date.now());
+              toast.success("Backup diunduh ✓");
             }}
           />
-          <SettingToggle
-            title="Notif tiap transaksi dicatat"
-            subtitle="Konfirmasi setiap kali kamu simpan pemasukan/pengeluaran"
-            checked={settings.txNotif}
-            onToggle={() => settings.set("txNotif", !settings.txNotif)}
+          <ActionRow
+            label={dict.exportCsv}
+            onClick={async () => {
+              const [txs, cats, wallets] = await Promise.all([db.transactions.toArray(), db.categories.toArray(), db.wallets.toArray()]);
+              downloadFile(`budgeto-transaksi-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(txs, cats, wallets), "text/csv");
+            }}
           />
-          <SettingToggle
-            title="Peringatan budget"
-            subtitle="Bunyi saat budget terpakai 80% & 100%"
-            checked={settings.budgetAlerts}
-            onToggle={() => settings.set("budgetAlerts", !settings.budgetAlerts)}
+          <ActionRow label={dict.importJson} onClick={() => fileRef.current?.click()} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const text = await file.text();
+              const res = await importData(text, "merge");
+              if (res.ok) {
+                set("lastBackupAt", Date.now());
+                toast.success(res.message);
+              } else toast.error(res.message);
+              e.target.value = "";
+            }}
           />
-          <SettingToggle
-            title="Pengingat harian"
-            subtitle="Ingatkan kalau belum catat keuangan hari ini"
-            checked={settings.dailyReminder}
-            onToggle={() => settings.set("dailyReminder", !settings.dailyReminder)}
-          />
-          {settings.dailyReminder && (
-            <div className="flex items-center justify-between pl-1">
-              <span className="text-xs text-muted-foreground">Jam pengingat</span>
-              <input
-                type="time"
-                value={settings.reminderTime}
-                onChange={(e) => settings.set("reminderTime", e.target.value)}
-                className="h-8 rounded-lg border bg-background px-2 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
-              />
-            </div>
-          )}
-        </Card>
-      </section>
+          <p className="text-[10px] leading-relaxed text-muted-foreground">{dict.importMerge}</p>
+        </div>
+      </Section>
 
-      {/* Cloud sync */}
-      <section>
-        <SectionTitle title="Sinkronisasi Cloud (Opsional)" />
-        <Card className="space-y-3">
-          {loggedInEmail ? (
-            <>
-              <div className="flex items-center gap-2 text-sm font-medium"><Cloud size={15} className="text-primary" /> Aktif — {loggedInEmail}</div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Status: {syncState.state === "ok" ? "tersinkron ✓" : syncState.state === "syncing" ? "sedang sinkron..." : syncState.state === "error" ? syncState.message || "error" : syncState.state === "offline" ? "offline" : "siap"}</span>
+      {/* ── Cloud opsional ── */}
+      <Section icon={<CloudUpload size={15} />} title={dict.cloud}>
+        <div className="space-y-2.5 p-4">
+          <p className="text-[10px] leading-relaxed text-muted-foreground">{dict.cloudDesc}</p>
+          <label className="block">
+            <span className="pb-1 block text-[10px] font-bold text-muted-foreground uppercase">{dict.supabaseUrl}</span>
+            <input value={s.supabaseUrl} onChange={(e) => set("supabaseUrl", e.target.value)} placeholder="https://xxxx.supabase.co" className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-xs outline-none ring-1 ring-border" />
+          </label>
+          <label className="block">
+            <span className="pb-1 block text-[10px] font-bold text-muted-foreground uppercase">{dict.supabaseKey}</span>
+            <input value={s.supabaseAnonKey} onChange={(e) => set("supabaseAnonKey", e.target.value)} type="password" placeholder="eyJhbGciOi…" className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-xs outline-none ring-1 ring-border" />
+          </label>
+          <Toggle label={dict.autoSync} checked={s.cloudAutoSync} onChange={(v) => set("cloudAutoSync", v)} />
+
+          {email ? (
+            <div className="space-y-2">
+              <p className="flex items-center gap-1.5 rounded-xl bg-ok/10 p-2.5 text-[11px] font-bold text-ok">
+                <Check size={13} /> {email}
+              </p>
+              <div className="flex gap-2">
                 <button
-                  className="flex items-center gap-1 rounded-lg border px-2 py-1 hover:bg-muted"
-                  onClick={async () => { setSyncing(true); const r = await syncNow(); toast[r.ok ? "success" : "error"](r.message); setSyncing(false); }}
+                  onClick={async () => { setBusy(true); const r = await syncNow(); if (r.ok) toast.success(r.message); else toast.error(r.message); setBusy(false); }}
+                  className="flex-1 rounded-xl bg-surface2 py-2.5 text-xs font-bold"
                 >
-                  <RefreshCw size={11} className={syncing ? "animate-spin" : ""} /> Sinkron sekarang
+                  {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : dict.syncNow}
+                </button>
+                <button onClick={() => void signOutCloud().then(() => setEmail(null))} className="flex-1 rounded-xl bg-surface2 py-2.5 text-xs font-bold text-bad">
+                  {dict.signOut}
                 </button>
               </div>
-              <SettingToggle title="Auto-sync" subtitle="Sinkron otomatis tiap ada perubahan" checked={settings.cloudAutoSync} onToggle={() => settings.set("cloudAutoSync", !settings.cloudAutoSync)} />
-              <Button variant="outline" className="h-9 w-full rounded-xl text-sm" onClick={async () => { await signOutCloud(); setLoggedInEmail(null); toast.success("Keluar dari cloud"); }}>
-                <LogOut size={14} className="mr-1" /> Keluar Cloud
-              </Button>
-            </>
+            </div>
           ) : (
-            <>
-              <div className="flex items-center gap-2 text-sm font-medium"><LogIn size={15} className="text-primary" /> Hubungkan akun cloud</div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Data tetap tersimpan di HP walau tanpa cloud. Kalau dihubungkan, data ikut ter-backup otomatis & bisa dibuka dari HP lain. Gratis pakai Supabase — ikuti langkah di panduan.
-              </p>
-              <Input value={settings.supabaseUrl} onChange={(e) => settings.set("supabaseUrl", e.target.value)} placeholder="Supabase Project URL (https://xxx.supabase.co)" className="h-9 rounded-xl text-xs" />
-              <Input value={settings.supabaseAnonKey} onChange={(e) => settings.set("supabaseAnonKey", e.target.value)} placeholder="Supabase anon/public key (eyJhb...)" className="h-9 rounded-xl text-xs" />
-              {!otpSent ? (
-                <Button className="h-9 w-full rounded-xl text-sm" onClick={async () => {
-                  if (!settings.supabaseUrl || !settings.supabaseAnonKey) { toast.error("Isi URL & anon key dulu"); return; }
-                  if (!email.includes("@")) { toast.error("Isi email yang valid"); return; }
-                  const r = await sendOtp(email);
-                  if (r.ok) { setOtpSent(true); toast.success(r.message); }
-                  else toast.error(r.message);
-                }}>Kirim Kode ke Email</Button>
-              ) : (
-                <>
-                  <Input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="Kode 6 digit dari email" className="h-9 rounded-xl text-center text-sm tracking-[0.4em]" maxLength={6} />
-                  <Button className="h-9 w-full rounded-xl text-sm" onClick={async () => {
-                    const r = await verifyOtp(email, otp);
-                    if (r.ok) { setLoggedInEmail(email); setOtpSent(false); toast.success(r.message); }
-                    else toast.error(r.message);
-                  }}>Verifikasi & Masuk</Button>
-                </>
-              )}
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email kamu" type="email" className="h-9 rounded-xl text-sm" />
-            </>
+            <CloudLogin dict={dict} onDone={setEmail} otpSent={otpSent} setOtpSent={setOtpSent} />
           )}
-        </Card>
-      </section>
 
-      {/* Data */}
-      <section>
-        <SectionTitle title="Data & Backup" />
-        <Card className="space-y-2">
-          <button className="flex w-full items-center gap-3 rounded-xl px-1 py-2 text-left hover:bg-accent" onClick={handleExport}>
-            <Download size={16} className="text-primary" />
-            <div>
-              <p className="text-sm font-medium">Backup data (JSON)</p>
-              <p className="text-[11px] text-muted-foreground">Simpan semua data ke file — bisa dipulihkan kapan saja</p>
-            </div>
-          </button>
-          <button className="flex w-full items-center gap-3 rounded-xl px-1 py-2 text-left hover:bg-accent" onClick={handleExportCsv}>
-            <Download size={16} className="text-primary" />
-            <div>
-              <p className="text-sm font-medium">Ekspor ke Excel/CSV</p>
-              <p className="text-[11px] text-muted-foreground">Semua transaksi dalam format CSV</p>
-            </div>
-          </button>
-          <label className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-1 py-2 text-left hover:bg-accent">
-            <Upload size={16} className="text-primary" />
-            <div>
-              <p className="text-sm font-medium">Pulihkan dari backup</p>
-              <p className="text-[11px] text-muted-foreground">Pilih file JSON backup Budgeto</p>
-            </div>
-            <input type="file" accept=".json" className="hidden" onChange={handleImportFile} />
-          </label>
-          <button className="flex w-full items-center gap-3 rounded-xl px-1 py-2 text-left hover:bg-accent" onClick={() => setConfirmReset(true)}>
-            <Trash2 size={16} className="text-expense" />
-            <div>
-              <p className="text-sm font-medium text-expense">Hapus semua data</p>
-              <p className="text-[11px] text-muted-foreground">Mulai dari nol — pastikan sudah backup!</p>
-            </div>
-          </button>
-        </Card>
-      </section>
-
-      {/* Widget Android */}
-      <section>
-        <SectionTitle title="Widget Android" />
-        <Card className="space-y-2">
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Widget layar utama tersedia di <b>APK Android</b> (lihat panduan &quot;Widget &amp; APK&quot;).
-            Agar widget bisa menampilkan <b>saldo live</b>, masukkan 3 nilai ini ke GitHub <b>Secrets</b> (SUPABASE_URL, SUPABASE_ANON_KEY, WIDGET_TOKEN):
-          </p>
-          {loggedInEmail ? (
-            <>
-              <CopyRow label="WIDGET_TOKEN" getValue={async () => (await getWidgetToken()) ?? "Buka app dulu & tekan Sinkron sekarang"} />
-              <CopyRow label="SUPABASE_URL" getValue={async () => settings.supabaseUrl} />
-              <CopyRow label="SUPABASE_ANON_KEY" getValue={async () => settings.supabaseAnonKey} />
-            </>
-          ) : (
-            <p className="rounded-lg bg-muted p-2 text-[11px] text-muted-foreground">
-              Hubungkan cloud dulu (di atas), lalu tekan &quot;Sinkron sekarang&quot; — token widget akan dibuat otomatis.
-            </p>
+          {syncInfo.state === "error" && (
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold text-bad"><CloudOff size={11} /> {syncInfo.message}</p>
           )}
-        </Card>
-      </section>
-
-      {/* Pasang aplikasi */}
-      <section>
-        <SectionTitle title="Pasang Aplikasi" />
-        <Card className="space-y-2">
-          <div className="flex gap-3 px-1 py-1.5">
-            <Smartphone size={16} className="mt-0.5 shrink-0 text-primary" />
-            <div className="text-xs leading-relaxed text-muted-foreground">
-              <p className="mb-1 text-sm font-medium text-foreground">Android (Chrome)</p>
-              Menu ⋮ → <b>Tambahkan ke layar utama</b>. Aplikasi muncul seperti app biasa, bisa dibuka tanpa browser.
-              <p className="mb-0.5 mt-2 text-sm font-medium text-foreground">iPhone (Safari)</p>
-              Tombol Share → <b>Add to Home Screen</b>.
-              <p className="mt-2">Ingin <b>widget layar utama + APK</b>? Ikuti bagian &quot;Widget & APK&quot; di panduan (PANDUAN.md).</p>
-            </div>
-          </div>
-        </Card>
-      </section>
-
-      {/* Tentang */}
-      <section className="pb-2">
-        <Card className="flex items-start gap-3">
-          <Info size={16} className="mt-0.5 shrink-0 text-primary" />
-          <div className="text-xs leading-relaxed text-muted-foreground">
-            <p className="text-sm font-semibold text-foreground">Budgeto v2.0</p>
-            <p>Catatan keuangan pribadi — 100% gratis, tanpa iklan, tanpa akun wajib. Data finansialmu tersimpan di perangkatmu sendiri (offline-first). Dibuat dengan ❤️ oleh {settings.userName || "kamu"} & Budgeto.</p>
-          </div>
-        </Card>
-      </section>
-
-      {/* Konfirmasi reset */}
-      <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
-        <DialogContent className="max-w-xs rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base"><Trash2 size={15} className="text-expense" /> Hapus SEMUA data?</DialogTitle>
-          </DialogHeader>
-          <p className="text-xs text-muted-foreground">Semua transaksi, dompet, budget, dan target akan dihapus permanen dari perangkat ini. Pastikan kamu sudah backup atau tersinkron ke cloud.</p>
-          <DialogFooter className="flex-row gap-2">
-            <Button variant="outline" className="h-9 flex-1 rounded-xl" onClick={() => setConfirmReset(false)}>Batal</Button>
-            <Button variant="destructive" className="h-9 flex-1 rounded-xl" onClick={async () => {
-              await resetAllData();
-              setConfirmReset(false);
-              toast.success("Semua data dihapus. Mulai dari nol!");
-            }}>Ya, hapus</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function SettingToggle({ icon: Icon, title, subtitle, checked, onToggle }: {
-  icon?: typeof BellRing; title: string; subtitle: string; checked: boolean; onToggle: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-2">
-        {Icon && <Icon size={15} className="mt-0.5 shrink-0 text-primary" />}
-        <div className="min-w-0">
-          <p className="text-sm font-medium leading-tight">{title}</p>
-          <p className="text-[11px] leading-snug text-muted-foreground">{subtitle}</p>
         </div>
-      </div>
-      <Switch checked={checked} onCheckedChange={onToggle} aria-label={title} />
+      </Section>
+
+      {/* ── Zona berbahaya ── */}
+      <Section icon={<TriangleAlert size={15} />} title={dict.danger} danger>
+        <div className="space-y-2 p-4">
+          <p className="text-[10px] leading-relaxed text-muted-foreground">{dict.resetAllDesc}</p>
+          <button
+            onClick={async () => {
+              const phrase = prompt(dict.typeErase);
+              if (phrase?.trim().toUpperCase() === "HAPUS" || phrase?.trim().toUpperCase() === "ERASE") {
+                await resetAllData();
+                toast.success("✓");
+              } else if (phrase !== null) toast.error(dict.wrongPin);
+            }}
+            className="w-full rounded-xl bg-bad/10 py-2.5 text-xs font-extrabold text-bad ring-1 ring-bad/30"
+          >
+            {dict.resetAll}
+          </button>
+        </div>
+      </Section>
+
+      <p className="pb-2 text-center text-[10px] text-muted-foreground">Budgeto v3.0 · offline-first · Dexie + Next.js</p>
     </div>
   );
 }
 
-function CopyRow({ label, getValue }: { label: string; getValue: () => Promise<string> }) {
-  const [copied, setCopied] = useState(false);
+function sLangOf(l: "id" | "en"): "id" | "en" { return l; }
+function idDict() { return DICT_ID; }
+function enDict() { return DICT_EN; }
+
+// kamus lokal ringkas (hindari import melingkar dengan i18n)
+const DICT_ID = {
+  settings: "Pengaturan", appearance: "Tampilan", themeMode: "Mode", system: "Ikut sistem", light: "Terang", dark: "Gelap",
+  accent: "Warna aksen", language: "Bahasa", periodPayday: "Periode & tanggal gajian", periodMode: "Aturan periode",
+  calendarMode: "Bulan kalender", paydayMode: "Tanggal gajian", paydayDay: "Tanggal gajian (1–31)",
+  periodPreview: "Periode sekarang", periodChangeWarn: "Mengubah aturan periode akan menghitung ulang dashboard, budget, dan laporan. Angka laporan lama bisa berubah.",
+  security: "Keamanan & privasi", appLock: "Kunci aplikasi (PIN)", appLockDesc: "Minta PIN saat app dibuka / kembali dari latar belakang",
+  autoLock: "Kunci ulang setelah", immediately: "Langsung", min1: "1 menit", min5: "5 menit",
+  privacyMode: "Mode privasi", privacyModeDesc: "Sembunyikan angka di dashboard & widget",
+  forgotPin: "Lupa PIN?", forgotPinDesc: "Satu-satunya cara pulih adalah menghapus semua data app (PIN ikut hilang). Backup dulu jika masih ada data penting.",
+  resetPinData: "Hapus PIN & semua data", typeErase: "Ketik HAPUS untuk konfirmasi",
+  biometric: "Biometrik (segera di APK)", biometricSoon: "Tersedia di build APK berikutnya",
+  enterPin: "Buat PIN 4–6 digit", confirmPin: "Ulangi PIN", pinMismatch: "PIN tidak sama",
+  notifications: "Notifikasi", notifEnabled: "Notifikasi aktif", notifTx: "Catat transaksi", notifBudget: "Peringatan budget 80% & 100%",
+  notifDaily: "Pengingat catat harian", reminderTime: "Jam pengingat", notifBills: "Pengingat tagihan",
+  dataBackup: "Data & backup", exportJson: "Ekspor backup (JSON)", exportCsv: "Ekspor transaksi (CSV)",
+  importJson: "Impor backup (JSON)", importMerge: "Impor menggabungkan: data dengan id sama ditimpa dari file, data lain tetap.",
+  lastBackup: "Backup terakhir", never: "belum pernah", backupHint: "Data hanya ada di perangkat ini. Ekspor backup secara berkala.",
+  cloud: "Sinkron cloud (opsional)", cloudDesc: "Sinkron antar perangkat via Supabase. App tetap jalan penuh tanpa ini.",
+  supabaseUrl: "URL Supabase", supabaseKey: "Anon key", email: "Email", sendOtp: "Kirim kode OTP",
+  otpCode: "Kode OTP (6 digit)", verify: "Verifikasi", signOut: "Keluar", autoSync: "Sinkron otomatis", syncNow: "Sinkron sekarang",
+  danger: "Zona berbahaya", resetAll: "Hapus semua data", resetAllDesc: "Semua transaksi, budget, dompet, dan aturan dihapus dari perangkat.",
+  wrongPin: "Konfirmasi tidak cocok",
+};
+
+const DICT_EN: typeof DICT_ID = {
+  settings: "Settings", appearance: "Appearance", themeMode: "Mode", system: "System", light: "Light", dark: "Dark",
+  accent: "Accent color", language: "Language", periodPayday: "Period & payday", periodMode: "Period rule",
+  calendarMode: "Calendar month", paydayMode: "Payday date", paydayDay: "Payday (1–31)",
+  periodPreview: "Current period", periodChangeWarn: "Changing the period rule recalculates dashboard, budgets, and reports. Past numbers may change.",
+  security: "Security & privacy", appLock: "App lock (PIN)", appLockDesc: "Require PIN when opening or returning to the app",
+  autoLock: "Re-lock after", immediately: "Immediately", min1: "1 minute", min5: "5 minutes",
+  privacyMode: "Privacy mode", privacyModeDesc: "Hide numbers on dashboard & widget",
+  forgotPin: "Forgot PIN?", forgotPinDesc: "The only way to recover is erasing all app data (PIN included). Make a backup first.",
+  resetPinData: "Erase PIN & all data", typeErase: "Type ERASE to confirm",
+  biometric: "Biometric (coming to APK)", biometricSoon: "Available in the next APK build",
+  enterPin: "Create a 4–6 digit PIN", confirmPin: "Repeat PIN", pinMismatch: "PINs do not match",
+  notifications: "Notifications", notifEnabled: "Notifications on", notifTx: "Transaction recorded", notifBudget: "Budget alerts 80% & 100%",
+  notifDaily: "Daily logging reminder", reminderTime: "Reminder time", notifBills: "Bill reminders",
+  dataBackup: "Data & backup", exportJson: "Export backup (JSON)", exportCsv: "Export transactions (CSV)",
+  importJson: "Import backup (JSON)", importMerge: "Import merges: rows with the same id are overwritten from the file; others are kept.",
+  lastBackup: "Last backup", never: "never", backupHint: "Data lives only on this device. Export a backup regularly.",
+  cloud: "Cloud sync (optional)", cloudDesc: "Sync across devices via Supabase. The app works fully without it.",
+  supabaseUrl: "Supabase URL", supabaseKey: "Anon key", email: "Email", sendOtp: "Send OTP code",
+  otpCode: "OTP code (6 digits)", verify: "Verify", signOut: "Sign out", autoSync: "Auto sync", syncNow: "Sync now",
+  danger: "Danger zone", resetAll: "Erase all data", resetAllDesc: "All transactions, budgets, wallets, and rules are removed from this device.",
+  wrongPin: "Confirmation does not match",
+};
+
+function Section({ icon, title, children, danger }: { icon: React.ReactNode; title: string; children: React.ReactNode; danger?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg bg-muted px-2 py-1.5">
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">{label}</p>
-        <p className="truncate text-[11px]">{label === "WIDGET_TOKEN" ? "••••••••-••••-•••• (tekan salin)" : "disimpan di pengaturan ini"}</p>
-      </div>
+    <section>
+      <p className={cn("flex items-center gap-1.5 px-1 pb-1.5 text-[11px] font-bold uppercase tracking-wide", danger ? "text-bad" : "text-muted-foreground")}>
+        {icon} {title}
+      </p>
+      <Card className={danger ? "border-bad/30" : undefined}>{children}</Card>
+    </section>
+  );
+}
+
+function Toggle({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={() => !disabled && onChange(!checked)}
+      aria-pressed={checked}
+      className={cn("flex w-full items-center justify-between rounded-xl px-1 py-1.5 text-left", disabled && "opacity-40")}
+      disabled={disabled}
+    >
+      <span className="text-xs font-semibold">{label}</span>
+      <span className={cn("relative h-6 w-10 rounded-full transition-colors", checked ? "bg-primary" : "bg-border")}>
+        <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all", checked ? "left-[18px]" : "left-0.5")} />
+      </span>
+    </button>
+  );
+}
+
+function ActionRow({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="w-full rounded-xl bg-surface2 py-2.5 text-left px-3 text-xs font-bold text-foreground transition-colors hover:bg-border/50">
+      {label}
+    </button>
+  );
+}
+
+function CloudLogin({ dict, onDone, otpSent, setOtpSent }: {
+  dict: typeof DICT_ID; onDone: (email: string) => void; otpSent: boolean; setOtpSent: (v: boolean) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  if (!otpSent) {
+    return (
       <button
-        className="shrink-0 rounded-lg border bg-background px-2 py-1 text-[11px] font-medium hover:bg-accent"
-        onClick={async () => {
-          try {
-            const v = await getValue();
-            await navigator.clipboard.writeText(v);
-            setCopied(true);
-            toast.success(`${label} disalin`);
-            setTimeout(() => setCopied(false), 2000);
-          } catch {
-            toast.error("Gagal menyalin — salin manual dari pengaturan");
-          }
-        }}
+        disabled={!email.includes("@") || busy}
+        onClick={async () => { setBusy(true); const r = await sendOtp(email); if (r.ok) { toast.success(r.message); setOtpSent(true); } else toast.error(r.message); setBusy(false); }}
+        className="w-full rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
       >
-        {copied ? "✓" : "Salin"}
+        {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : dict.sendOtp}
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <input value={token} onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder={dict.otpCode} inputMode="numeric" className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-center text-sm font-extrabold tracking-[0.3em] outline-none ring-1 ring-border" />
+      <button
+        disabled={token.length < 6 || busy}
+        onClick={async () => { setBusy(true); const r = await verifyOtp(email, token); if (r.ok) { toast.success(r.message); onDone(email); } else toast.error(r.message); setBusy(false); }}
+        className="w-full rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+      >
+        {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : dict.verify}
       </button>
     </div>
+  );
+}
+
+// ─── Keamanan: PIN setup / remove, auto-lock, privasi, biometrik flag ──
+function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
+  const s = useSettings();
+  const set = useSettings((x) => x.set);
+  const [pin1, setPin1] = useState("");
+  const [pin2, setPin2] = useState("");
+  const [showSetup, setShowSetup] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <Section icon={<ShieldCheck size={15} />} title={dict.security}>
+      <div className="space-y-2.5 p-4">
+        <Toggle label={dict.appLock} checked={s.lockEnabled} onChange={(v) => { set("lockEnabled", v); if (v) setShowSetup(true); else { set("pin", null); setShowSetup(false); } }} />
+        {s.lockEnabled && showSetup && (
+          <div className="anim-rise space-y-2 rounded-xl bg-surface2 p-3">
+            <input
+              value={pin1}
+              onChange={(e) => setPin1(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder={dict.enterPin}
+              inputMode="numeric"
+              type="password"
+              className="w-full rounded-xl bg-card px-3 py-2.5 text-center text-sm font-extrabold tracking-[0.35em] outline-none ring-1 ring-border"
+            />
+            <input
+              value={pin2}
+              onChange={(e) => setPin2(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder={dict.confirmPin}
+              inputMode="numeric"
+              type="password"
+              className="w-full rounded-xl bg-card px-3 py-2.5 text-center text-sm font-extrabold tracking-[0.35em] outline-none ring-1 ring-border"
+            />
+            <button
+              disabled={pin1.length < 4 || pin1 !== pin2 || busy}
+              onClick={async () => {
+                setBusy(true);
+                const record = await hashPin(pin1);
+                set("pin", record);
+                setShowSetup(false);
+                setPin1(""); setPin2("");
+                toast.success("✓");
+                setBusy(false);
+              }}
+              className="w-full rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+            >
+              {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : "✓"}
+            </button>
+            {pin1 !== pin2 && pin2.length > 0 && <p className="text-center text-[10px] font-bold text-bad">{dict.pinMismatch || "PIN tidak sama"}</p>}
+          </div>
+        )}
+        {s.lockEnabled && (
+          <>
+            <div>
+              <p className="pb-1.5 pl-1 text-[11px] font-bold text-muted-foreground">{dict.autoLock}</p>
+              <Segmented
+                value={String(s.autoLockDelay) as "0" | "60" | "300"}
+                onChange={(v) => set("autoLockDelay", Number(v) as 0 | 60 | 300)}
+                options={[
+                  { value: "0", label: dict.immediately },
+                  { value: "60", label: dict.min1 },
+                  { value: "300", label: dict.min5 },
+                ]}
+              />
+            </div>
+            <button onClick={() => setShowForgot((v) => !v)} className="pl-1 text-[11px] font-bold text-warn underline-offset-2 hover:underline">
+              {dict.forgotPin}
+            </button>
+            {showForgot && (
+              <div className="anim-rise space-y-2 rounded-xl bg-bad/8 p-3 ring-1 ring-bad/25">
+                <p className="text-[10px] leading-relaxed text-foreground/85">{dict.forgotPinDesc}</p>
+                <button
+                  onClick={async () => {
+                    const phrase = prompt(dict.typeErase);
+                    if (phrase?.trim().toUpperCase() === "HAPUS" || phrase?.trim().toUpperCase() === "ERASE") {
+                      await resetAllData();
+                      set("lockEnabled", false);
+                      set("pin", null);
+                      useLock.getState().unlock();
+                      toast.success("✓");
+                    } else if (phrase !== null) toast.error(dict.wrongPin);
+                  }}
+                  className="w-full rounded-xl bg-bad/15 py-2 text-[11px] font-extrabold text-bad"
+                >
+                  {dict.resetPinData}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+        <Toggle label={dict.privacyMode} checked={s.privacyMode} onChange={(v) => set("privacyMode", v)} />
+        <p className="pl-1 text-[10px] text-muted-foreground">{dict.privacyModeDesc}</p>
+        <div className="rounded-xl bg-surface2 p-2.5 opacity-70">
+          <p className="text-[11px] font-semibold text-muted-foreground">🔒 {dict.biometric}</p>
+          <p className="text-[10px] text-muted-foreground">{dict.biometricSoon}</p>
+        </div>
+      </div>
+    </Section>
   );
 }

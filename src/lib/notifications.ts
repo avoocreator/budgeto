@@ -1,26 +1,25 @@
 // ============================================================
-// BUDGETO v2 — Notifikasi (system + in-app)
+// BUDGETO v3 — Notifikasi (system via SW + in-app toast)
 // - Notifikasi saat transaksi dicatat
-// - Peringatan budget 80% / 100%
-// - Pengingat harian (saat app terbuka / periodic background sync)
+// - Peringatan budget 80% / 100% (sekali per level per bulan/periode)
+// - Pengingat catat harian
+// - Pengingat tagihan H-1 (F06)
 // ============================================================
 
 "use client";
 
 export const budgetAlertFlags = {
-  getFlag(budgetId: string, month: string): number {
+  getFlag(budgetId: string, periodKey: string): number {
     try {
-      return Number(localStorage.getItem(`budgeto-ba-${budgetId}-${month}`) ?? 0);
+      return Number(localStorage.getItem(`budgeto-ba-${budgetId}-${periodKey}`) ?? 0);
     } catch {
       return 2; // kalau localStorage gagal, jangan spam notif
     }
   },
-  setFlag(budgetId: string, month: string, level: number): void {
+  setFlag(budgetId: string, periodKey: string, level: number): void {
     try {
-      localStorage.setItem(`budgeto-ba-${budgetId}-${month}`, String(level));
-    } catch {
-      /* ignore */
-    }
+      localStorage.setItem(`budgeto-ba-${budgetId}-${periodKey}`, String(level));
+    } catch { /* abaikan */ }
   },
 };
 
@@ -36,34 +35,6 @@ export async function requestPermission(): Promise<NotificationPermission> {
   return Notification.permission;
 }
 
-function iconFor(name: string): string {
-  return `/icons/notif-${name}.png`;
-}
-
-/** Tampilkan notifikasi via service worker (bisa muncul saat app di background). */
-export async function notify(title: string, body: string, icon: string = "wallet"): Promise<void> {
-  // selalu tampilkan toast in-app
-  try {
-    const { toast } = await import("sonner");
-    toast(title, { description: body });
-  } catch {
-    /* toast opsional */
-  }
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-
-  const swReady = await ensureSw();
-  try {
-    if (swReady) {
-      await swReady.showNotification(title, { body, icon: iconFor(icon), badge: iconFor("badge"), tag: `budgeto-${Date.now()}` });
-    } else {
-      new Notification(title, { body, icon: iconFor(icon) });
-    }
-  } catch {
-    /* notifikasi gagal — abaikan, toast sudah muncul */
-  }
-}
-
 let swRegistration: ServiceWorkerRegistration | null = null;
 
 export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
@@ -77,14 +48,28 @@ export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
   }
 }
 
-// ─── Pengingat Harian ────────────────────────────────────────
+/** Tampilkan notifikasi: selalu toast in-app; system notification bila izin ada. */
+export async function notify(title: string, body: string, icon = "wallet"): Promise<void> {
+  try {
+    const { toast } = await import("sonner");
+    toast(title, { description: body });
+  } catch { /* toast opsional */ }
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    const sw = await ensureSw();
+    const iconUrl = `/icons/notif-${icon}.png`;
+    if (sw) {
+      await sw.showNotification(title, { body, icon: iconUrl, badge: "/icons/notif-badge.png", tag: `budgeto-${Date.now()}` });
+    } else {
+      new Notification(title, { body, icon: iconUrl });
+    }
+  } catch { /* notifikasi gagal — toast sudah muncul */ }
+}
+
+// ─── Pengingat harian ────────────────────────────────────────
 const REMINDER_KEY = "budgeto-last-reminder";
 
-/**
- * Jadwalkan pengingat harian. Dipanggil setiap app dibuka.
- * Catatan jujur: timer hanya hidup selama app terbuka/berjalan di background.
- * Untuk Android yang ter-install (PWA/API 33+), periodic background sync menambah keandalan.
- */
 export function scheduleDailyReminder(time: string, enabled: boolean): void {
   if (!enabled || typeof window === "undefined") return;
   const [h, m] = time.split(":").map(Number);
@@ -92,40 +77,19 @@ export function scheduleDailyReminder(time: string, enabled: boolean): void {
   const target = new Date();
   target.setHours(h || 20, m || 0, 0, 0);
   if (target.getTime() <= nowD.getTime()) target.setDate(target.getDate() + 1);
-  const delay = target.getTime() - nowD.getTime();
   window.setTimeout(() => {
     void fireDailyReminder();
-    // jadwalkan lagi untuk besok
     scheduleDailyReminder(time, enabled);
-  }, delay);
+  }, target.getTime() - nowD.getTime());
 }
 
 export async function fireDailyReminder(): Promise<void> {
   if (typeof window === "undefined") return;
-  const last = localStorage.getItem(REMINDER_KEY);
   const today = new Date().toISOString().slice(0, 10);
-  if (last === today) return; // sudah diingatkan hari ini
+  if (localStorage.getItem(REMINDER_KEY) === today) return;
   const { db } = await import("./db");
   const todayTx = await db.transactions.where("date").equals(today).toArray();
-  const hasExpense = todayTx.some((t) => !t.deleted && t.type === "expense");
-  if (hasExpense) return; // sudah catat, tidak perlu diingatkan
+  if (todayTx.some((t) => !t.deleted && t.type === "expense")) return;
   localStorage.setItem(REMINDER_KEY, today);
   void notify("Jangan lupa catat keuangan 💰", "Ada pengeluaran hari ini yang belum dicatat di Budgeto?", "piggy-bank");
-}
-
-/** Daftarkan periodic background sync (khusus PWA ter-install di Android Chrome). */
-export async function registerPeriodicSync(): Promise<void> {
-  const reg = await ensureSw();
-  if (!reg) return;
-  type PeriodicSyncManager = { register: (tag: string, opts: { minInterval: number }) => Promise<void> };
-  const psm = (reg as ServiceWorkerRegistration & { periodicSync?: PeriodicSyncManager }).periodicSync;
-  if (!psm) return;
-  try {
-    const status = await navigator.permissions?.query({ name: "periodic-background-sync" as PermissionName });
-    if (status?.state === "granted") {
-      await psm.register("budgeto-reminder", { minInterval: 12 * 60 * 60 * 1000 });
-    }
-  } catch {
-    /* tidak didukung — abaikan */
-  }
 }

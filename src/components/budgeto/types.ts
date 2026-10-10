@@ -1,2 +1,12 @@
-// Tipe shared antar view Budgeto
-export type View = "dashboard" | "transactions" | "reports" | "menu" | "goals" | "budgets" | "wallets" | "categories" | "settings";
+// Tipe tampilan untuk navigasi internal AppShell
+export type View =
+  | "dashboard"
+  | "transactions"
+  | "reports"
+  | "menu"
+  | "budgets"
+  | "wallets"
+  | "goals"
+  | "categories"
+  | "bills"
+  | "settings";

@@ -1,18 +1,19 @@
 // ============================================================
-// BUDGETO v2 — Sinkronisasi Cloud (Supabase, GRATIS, opsional)
-// - Login pakai email OTP (aman, tiap user hanya lihat datanya — RLS)
-// - Last-Write-Wins berdasarkan updatedAt
-// - Auto sync: saat app dibuka & setiap transaksi (debounce 4 detik)
+// BUDGETO v3 — Sinkronisasi Cloud (Supabase, OPSIONAL — app 100% jalan offline)
+// - Login email OTP; RLS memastikan tiap pengguna hanya melihat datanya
+// - Delta sync berdasarkan updatedAt; soft delete (`deleted`) ikut tersync
+// - Konflik: Last-Write-Wins (updatedAt terbaru menang)
+// - Offline: antrean = debounce; dikirim saat koneksi kembali
+// - Skema tabel mengikuti supabase-schema.sql + recurring_rules (v3)
 // ============================================================
 
 "use client";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { db } from "./db";
-import type { AppData } from "./types";
 import { useSettings } from "./settings";
 
-type SyncState = "idle" | "syncing" | "ok" | "error" | "offline" | "unconfigured";
+type SyncState = "unconfigured" | "idle" | "syncing" | "ok" | "error" | "offline";
 type Listener = (state: SyncState, message?: string) => void;
 
 let client: SupabaseClient | null = null;
@@ -24,6 +25,15 @@ const listeners = new Set<Listener>();
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let syncing = false;
 
+const TABLES = ["transactions", "categories", "wallets", "budgets", "goals", "recurring_rules"] as const;
+type TableName = (typeof TABLES)[number];
+
+/** pemetaan tabel Dexie ↔ tabel Supabase (recurring_rules ↔ recurringRules) */
+function dexieTable(name: TableName) {
+  const map = { recurring_rules: "recurringRules" } as Record<string, string>;
+  return (db as unknown as Record<string, { toArray(): Promise<Record<string, unknown>[]>; put(v: Record<string, unknown>): Promise<unknown> }>)[map[name] ?? name];
+}
+
 export function getSyncState(): { state: SyncState; message: string } {
   return { state: currentState, message: currentMessage };
 }
@@ -31,7 +41,7 @@ export function getSyncState(): { state: SyncState; message: string } {
 export function onSyncChange(listener: Listener): () => void {
   listeners.add(listener);
   listener(currentState, currentMessage);
-  return () => listeners.delete(listener);
+  return () => { listeners.delete(listener); };
 }
 
 function setState(state: SyncState, message = ""): void {
@@ -50,9 +60,7 @@ function getClient(): SupabaseClient | null {
   const cleanKey = supabaseAnonKey.trim();
   if (!client || clientUrl !== cleanUrl || clientKey !== cleanKey) {
     try {
-      client = createClient(cleanUrl, cleanKey, {
-        auth: { persistSession: true, autoRefreshToken: true },
-      });
+      client = createClient(cleanUrl, cleanKey, { auth: { persistSession: true, autoRefreshToken: true } });
       clientUrl = cleanUrl;
       clientKey = cleanKey;
     } catch {
@@ -66,7 +74,7 @@ function getClient(): SupabaseClient | null {
 export async function sendOtp(email: string): Promise<{ ok: boolean; message: string }> {
   const c = getClient();
   if (!c) return { ok: false, message: "Isi dulu URL & anon key Supabase" };
-  setState("syncing", "Mengirim kode...");
+  setState("syncing", "Mengirim kode…");
   const { error } = await c.auth.signInWithOtp({ email: email.trim().toLowerCase() });
   if (error) {
     setState("error", error.message);
@@ -96,64 +104,23 @@ export async function signOutCloud(): Promise<void> {
 export async function getSessionEmail(): Promise<string | null> {
   const c = getClient();
   if (!c) return null;
-  const { data } = await c.auth.getSession();
-  return data.session?.user?.email ?? null;
+  try {
+    const { data } = await c.auth.getSession();
+    return data.session?.user?.email ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── SYNC ENGINE ─────────────────────────────────────────────
-const TABLES = ["transactions", "categories", "wallets", "budgets", "goals", "settings"] as const;
-type TableName = (typeof TABLES)[number];
-
-async function pushTable(name: TableName, c: SupabaseClient, userId: string): Promise<void> {
-  let rows: Record<string, unknown>[] = [];
-  if (name === "settings") {
-    rows = (await db.settings.toArray()).map((s) => ({ ...s, user_id: userId }));
-  } else {
-    rows = ((await (db as unknown as Record<string, { toArray(): Promise<Record<string, unknown>[]> }>)[name].toArray()) as Record<string, unknown>[]).map(
-      (r) => ({ ...r, user_id: userId })
-    );
-  }
+async function pushTable(name: TableName, c: SupabaseClient, userId: string, since: number): Promise<void> {
+  const all = await dexieTable(name).toArray();
+  const rows = all
+    .filter((r) => Number(r.updatedAt ?? 0) > since)
+    .map((r) => ({ ...r, user_id: userId }));
   if (rows.length === 0) return;
   const { error } = await c.from(name).upsert(rows, { onConflict: "id" });
   if (error) throw new Error(`push ${name}: ${error.message}`);
-}
-
-/** Sinkron ringkasan untuk widget Android (tabel widget_summary, PK user_id). */
-async function pushWidgetSummary(c: SupabaseClient, userId: string): Promise<void> {
-  const { totalBalance, monthlySummary } = await import("./stats");
-  const { monthStr } = await import("./format");
-  const [txs, wallets] = await Promise.all([db.transactions.toArray(), db.wallets.toArray()]);
-  const month = monthStr(0);
-  const s = monthlySummary(txs, month);
-
-  // Ambil token widget yang sudah ada di cloud (jangan sampai tertimpa)
-  const { data: existing } = await c
-    .from("widget_summary")
-    .select("widget_token")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  let token = existing?.widget_token as string | undefined;
-  if (!token) {
-    token = localStorage.getItem("budgeto-widget-token") ?? crypto.randomUUID();
-    localStorage.setItem("budgeto-widget-token", token);
-  }
-
-  const row = {
-    user_id: userId,
-    balance: totalBalance(txs, wallets),
-    month_income: s.income,
-    month_expense: s.expense,
-    widget_token: token,
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = await c.from("widget_summary").upsert(row, { onConflict: "user_id" });
-  if (error) throw new Error(`push widget_summary: ${error.message}`);
-  localStorage.setItem("budgeto-widget-token", token);
-}
-
-export async function getWidgetToken(): Promise<string | null> {
-  return localStorage.getItem("budgeto-widget-token");
 }
 
 async function pullTable(name: TableName, c: SupabaseClient, userId: string, since: number): Promise<number> {
@@ -161,17 +128,13 @@ async function pullTable(name: TableName, c: SupabaseClient, userId: string, sin
     .from(name)
     .select("*")
     .eq("user_id", userId)
-    .gt("updated_at", new Date(since).toISOString());
+    .gt("updated_at", String(since));
   if (error) throw new Error(`pull ${name}: ${error.message}`);
   if (!data || data.length === 0) return 0;
-
-  const localTable = (db as unknown as Record<string, { put(v: Record<string, unknown>): Promise<unknown> }>)[name];
+  const table = dexieTable(name);
   for (const row of data as Record<string, unknown>[]) {
     const { user_id: _u, ...rest } = row;
-    // Konversi updated_at ISO → epoch agar konsisten dgn lokal
-    if (typeof rest.updatedAt === "string") rest.updatedAt = new Date(rest.updatedAt).getTime();
-    if (typeof rest.createdAt === "string") rest.createdAt = new Date(rest.createdAt).getTime();
-    await localTable.put(rest);
+    await table.put(rest);
   }
   return data.length;
 }
@@ -185,7 +148,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
   try {
     if (navigator.onLine === false) {
       setState("offline");
-      return { ok: false, message: "Tidak ada koneksi internet" };
+      return { ok: false, message: "Tidak ada koneksi — antrean dikirim saat online" };
     }
     const { data } = await c.auth.getSession();
     const user = data.session?.user;
@@ -194,18 +157,12 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       syncing = false;
       return { ok: false, message: "Login dulu dengan kode email" };
     }
-    const lastSync = Number(localStorage.getItem("budgeto-last-sync") ?? 0);
-
-    // PUSH dulu (data lokal → cloud)
-    for (const t of TABLES) await pushTable(t, c, user.id);
-    await pushWidgetSummary(c, user.id);
-
-    // PULL (perubahan dari perangkat lain → lokal)
+    const lastSync = Number(localStorage.getItem("budgeto-last-sync-v3") ?? 0);
+    for (const t of TABLES) await pushTable(t, c, user.id, lastSync);
     let pulled = 0;
     for (const t of TABLES) pulled += await pullTable(t, c, user.id, lastSync);
-
-    localStorage.setItem("budgeto-last-sync", String(Date.now()));
-    setState("ok", pulled > 0 ? `${pulled} perubahan diterima` : "");
+    localStorage.setItem("budgeto-last-sync-v3", String(Date.now()));
+    setState("ok");
     return { ok: true, message: pulled > 0 ? `Sinkron OK (${pulled} perubahan baru)` : "Semua data sudah tersinkron" };
   } catch (err) {
     setState("error", err instanceof Error ? err.message : "Gagal sinkron");
@@ -215,7 +172,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
   }
 }
 
-/** Debounced auto-sync setelah perubahan data */
+/** Debounced auto-sync setelah perubahan data (hemat kuota: hanya delta). */
 export function scheduleSync(): void {
   const { cloudAutoSync, supabaseUrl, supabaseAnonKey } = useSettings.getState();
   if (!cloudAutoSync || !supabaseUrl || !supabaseAnonKey) return;
@@ -223,31 +180,16 @@ export function scheduleSync(): void {
   syncTimer = setTimeout(() => void syncNow(), 4000);
 }
 
-/** Dipanggil sekali saat app dibuka */
+/** Dipanggil sekali saat app dibuka. */
 export function initSync(): void {
   const { supabaseUrl, supabaseAnonKey, cloudAutoSync } = useSettings.getState();
   if (!supabaseUrl || !supabaseAnonKey) {
     setState("unconfigured");
     return;
   }
-  if (cloudAutoSync) {
-    // delay kecil agar app load dulu
-    setTimeout(() => void syncNow(), 1500);
-  }
+  if (cloudAutoSync) setTimeout(() => void syncNow(), 1500);
   window.addEventListener("online", () => {
     const { cloudAutoSync: auto } = useSettings.getState();
     if (auto) void syncNow();
   });
-}
-
-/** Cek status login (untuk UI settings) */
-export async function checkAuthState(): Promise<string | null> {
-  const c = getClient();
-  if (!c) return null;
-  try {
-    const { data } = await c.auth.getSession();
-    return data.session?.user?.email ?? null;
-  } catch {
-    return null;
-  }
 }

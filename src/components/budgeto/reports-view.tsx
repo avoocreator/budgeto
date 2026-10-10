@@ -1,221 +1,222 @@
 // ============================================================
-// BUDGETO v2 — Laporan & Analisis (chart compact)
+// BUDGETO v3 — Laporan
+// Tren 6 periode (ikut aturan periode), komposisi kategori,
+// aktivitas harian. Satu kalimat insight di atas tiap grafik,
+// dihitung dari data (bukan ditulis tangan) — design.md §3.
 // ============================================================
 
 "use client";
 
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { db } from "@/lib/db";
+import { activeTxs, inPeriod, spentByCategory, topCategoryName } from "@/lib/money";
+import { currentPeriod, shiftPeriod, periodLabel } from "@/lib/period";
 import { useSettings } from "@/lib/settings";
-import { monthlyTrend, categoryBreakdown, dailyActivity, computeInsights } from "@/lib/stats";
-import { monthLabel, monthStr, formatMoney, formatDateFull } from "@/lib/format";
-import { Card, CatIcon, EmptyState, SectionTitle } from "./ui-bits";
-import { TrendingUp, TrendingDown, Flame, CalendarClock, PieChart as PieIcon } from "lucide-react";
+import { useLang } from "@/lib/i18n";
+import { formatMoney, addDays } from "@/lib/format";
+import { Card, Segmented, EmptyState } from "./ui-bits";
+import { TrendingUp, TrendingDown, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ReportsView() {
-  const currency = useSettings((s) => s.currency);
-  const [month, setMonth] = useState(monthStr(0));
+  const lang = useLang((s) => s.lang);
+  const periodMode = useSettings((s) => s.periodMode);
+  const payday = useSettings((s) => s.payday);
+  const [offset, setOffset] = useState(0);
 
   const txs = useLiveQuery(() => db.transactions.toArray(), []);
-  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted).toArray(), []);
+  const cats = useLiveQuery(() => db.categories.filter((c) => !c.deleted).toArray(), []);
 
-  const trend = useMemo(() => monthlyTrend(txs ?? [], 6).map((t) => ({
-    ...t,
-    label: monthLabel(t.month),
-    incomeR: t.income, expenseR: t.expense,
-  })), [txs]);
+  const cur = useMemo(() => shiftPeriod(currentPeriod(periodMode, payday), offset, periodMode, payday), [periodMode, payday, offset]);
+  const prev = useMemo(() => shiftPeriod(cur, -1, periodMode, payday), [cur, periodMode, payday]);
 
-  const breakdown = useMemo(() => categoryBreakdown(txs ?? [], month, "expense"), [txs, month]);
-  const donut = useMemo(() => breakdown.slice(0, 6).map((b) => {
-    const cat = categories?.find((c) => c.id === b.categoryId);
-    return { name: cat?.name ?? "Lainnya", value: b.amount, color: cat?.color ?? "#64748b" };
-  }), [breakdown, categories]);
+  const loading = txs === undefined;
+  const data = useMemo(() => activeTxs(txs ?? []), [txs]);
 
-  const daily = useMemo(() => dailyActivity(txs ?? [], month).map((d) => ({
-    ...d, label: String(Number(d.date.slice(8))),
-  })), [txs, month]);
+  // ── agregat periode aktif & sebelumnya ──
+  const curSum = useMemo(() => sumPeriod(data, cur), [data, cur]);
+  const prevSum = useMemo(() => sumPeriod(data, prev), [data, prev]);
 
-  const insights = useMemo(() => computeInsights(txs ?? [], categories ?? [], month), [txs, categories, month]);
+  // ── tren 6 periode ──
+  const trend = useMemo(() => {
+    const arr: { label: string; income: number; expense: number }[] = [];
+    for (let i = -5; i <= 0; i++) {
+      const p = shiftPeriod(cur, i, periodMode, payday);
+      const s = sumPeriod(data, p);
+      const label = periodLabel(p, lang).split("–")[0]?.trim() ?? "";
+      arr.push({ label: label.replace(/^(\d+)\s.*$/, "$1") + " " + p.start.split("-")[1], income: s.income, expense: s.expense });
+    }
+    return arr;
+  }, [data, cur, periodMode, payday, lang]);
 
-  const months = useMemo(() => {
-    const set = new Set((txs ?? []).filter((t) => !t.deleted).map((t) => t.date.slice(0, 7)));
-    set.add(monthStr(0));
-    return [...set].sort().reverse().slice(0, 24);
-  }, [txs]);
+  // ── komposisi kategori ──
+  const catData = useMemo(() => {
+    const map = spentByCategory(data, cur);
+    return Array.from(map.entries())
+      .map(([id, value]) => ({ name: cats?.find((c) => c.id === id)?.name ?? "—", value, color: cats?.find((c) => c.id === id)?.color ?? "#64748b" }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [data, cur, cats]);
 
-  const chipCls = (active: boolean) =>
-    cn(
-      "shrink-0 rounded-full border px-3.5 py-1.5 text-xs transition-all duration-150 active:scale-95",
-      active
-        ? "border-primary bg-gradient-to-r from-emerald-600 to-teal-500 font-bold text-white shadow-sm shadow-emerald-600/25"
-        : "border-border bg-card text-muted-foreground hover:bg-muted"
-    );
+  // ── aktivitas harian ──
+  const dailyData = useMemo(() => {
+    const arr: { day: string; expense: number; income: number }[] = [];
+    let d = cur.start;
+    let guard = 0;
+    while (d <= cur.end && guard < 40) {
+      const list = data.filter((t) => t.date === d);
+      arr.push({
+        day: d.split("-")[2],
+        expense: list.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0),
+        income: list.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0),
+      });
+      d = addDays(d, 1);
+      guard++;
+    }
+    return arr;
+  }, [data, cur]);
 
-  if (txs === undefined) return <div className="h-72 animate-pulse rounded-2xl bg-muted" />;
+  if (loading) {
+    return <div className="space-y-3"><div className="h-32 animate-pulse rounded-2xl bg-surface2" /><div className="h-64 animate-pulse rounded-2xl bg-surface2" /></div>;
+  }
 
-  const totalExpense = breakdown.reduce((s, b) => s + b.amount, 0);
+  const fmt = (v: number) => formatMoney(v, lang, { compact: true });
+  const hasData = data.length > 0;
+
+  // ── insight (dihitung dari data) ──
+  const expenseDelta = prevSum.expense > 0 ? ((curSum.expense - prevSum.expense) / prevSum.expense) * 100 : 0;
+  const top = topCategoryName(spentByCategory(data, cur), cats ?? []);
+  const insightExpense = prevSum.expense > 0
+    ? lang === "id"
+      ? `Pengeluaran ${expenseDelta >= 0 ? "naik" : "turun"} ${Math.abs(Math.round(expenseDelta))}% dari periode lalu`
+      : `Expenses are ${Math.abs(Math.round(expenseDelta))}% ${expenseDelta >= 0 ? "up" : "down"} from last period`
+    : null;
+  const net = curSum.income - curSum.expense;
 
   return (
-    <div className="space-y-4">
-      {/* Pilih bulan */}
-      <div className="anim-rise thin-scroll flex gap-2 overflow-x-auto pb-1">
-        {months.map((m) => (
-          <button key={m} onClick={() => setMonth(m)} className={chipCls(month === m)}>
-            {monthLabel(m, m === monthStr(0))}
-          </button>
-        ))}
+    <div className="space-y-4 pb-2">
+      {/* Header + navigasi periode */}
+      <div>
+        <h1 className="text-lg font-extrabold tracking-tight">{lang === "id" ? "Laporan" : "Reports"}</h1>
+        <div className="mt-2 flex items-center gap-2">
+          <button onClick={() => setOffset((o) => o - 1)} className="rounded-xl bg-card px-3 py-2 text-xs font-bold ring-1 ring-border">←</button>
+          <div className="flex-1 text-center">
+            <p className="text-xs font-bold">{periodLabel(cur, lang)}</p>
+            <p className="text-[10px] text-muted-foreground">{offset === 0 ? (lang === "id" ? "periode ini" : "this period") : ""}</p>
+          </div>
+          <button onClick={() => setOffset((o) => Math.min(0, o + 1))} disabled={offset >= 0} className="rounded-xl bg-card px-3 py-2 text-xs font-bold ring-1 ring-border disabled:opacity-30">→</button>
+        </div>
       </div>
 
-      {/* Tren 6 bulan */}
-      <section>
-        <SectionTitle title="Tren 6 Bulan" />
-        <Card>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trend} barGap={2} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--income)" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="var(--income)" stopOpacity={0.45} />
-                  </linearGradient>
-                  <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--expense)" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="var(--expense)" stopOpacity={0.45} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} dy={4} />
-                <YAxis hide />
-                <Tooltip
-                  cursor={{ fill: "var(--accent)", opacity: 0.4, radius: 8 }}
-                  contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--popover)", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
-                  formatter={(value: number | string, name: string) => [
-                    formatMoney(Number(value), currency),
-                    name === "income" ? "Masuk" : "Keluar",
-                  ]}
-                />
-                <Bar dataKey="income" name="income" fill="url(#gradIncome)" radius={[5, 5, 3, 3]} maxBarSize={16} />
-                <Bar dataKey="expense" name="expense" fill="url(#gradExpense)" radius={[5, 5, 3, 3]} maxBarSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Ringkasan periode + net */}
+      <Card className="p-4">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang === "id" ? "Masuk" : "In"}</p>
+            <p className="big-number text-[15px] font-extrabold text-income">{fmt(curSum.income)}</p>
           </div>
-          <div className="mt-1 flex justify-center gap-4 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-income" /> Pemasukan</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-expense" /> Pengeluaran</span>
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang === "id" ? "Keluar" : "Out"}</p>
+            <p className="big-number text-[15px] font-extrabold text-expense">{fmt(curSum.expense)}</p>
           </div>
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang === "id" ? "Selisih" : "Net"}</p>
+            <p className={cn("big-number text-[15px] font-extrabold", net >= 0 ? "text-ok" : "text-bad")}>{fmt(net)}</p>
+          </div>
+        </div>
+      </Card>
+
+      {!hasData && <EmptyState title={lang === "id" ? "Belum ada data untuk ditampilkan" : "No data to show yet"} />}
+
+      {/* Insight pengeluaran */}
+      {insightExpense && (
+        <Card className="flex items-start gap-2 p-3.5">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><Info size={13} /></span>
+          <p className="text-xs font-semibold leading-relaxed">{insightExpense}{top ? ` · ${lang === "id" ? "terbesar" : "top"}: ${top.name}` : ""}</p>
         </Card>
-      </section>
+      )}
+
+      {/* Tren 6 periode */}
+      <ChartCard title={lang === "id" ? "Tren 6 periode" : "6-period trend"}>
+        <ResponsiveContainer width="100%" height={190}>
+          <LineChart data={trend} margin={{ top: 6, right: 6, bottom: 0, left: -18 }}>
+            <XAxis dataKey="label" tick={{ fontSize: 9, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} tickFormatter={fmt} width={58} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number, k: string) => [fmt(v), k === "income" ? (lang === "id" ? "Masuk" : "In") : (lang === "id" ? "Keluar" : "Out")]} />
+            <Legend wrapperStyle={{ fontSize: 10 }} formatter={(v: string) => (v === "income" ? (lang === "id" ? "Masuk" : "In") : (lang === "id" ? "Keluar" : "Out"))} />
+            <Line type="monotone" dataKey="income" stroke="var(--income)" strokeWidth={2.2} dot={{ r: 2.5 }} />
+            <Line type="monotone" dataKey="expense" stroke="var(--expense)" strokeWidth={2.2} dot={{ r: 2.5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartCard>
 
       {/* Komposisi kategori */}
-      <section>
-        <SectionTitle title={`Komposisi ${monthLabel(month, true)}`} />
-        {donut.length === 0 ? (
-          <EmptyState icon={PieIcon} title="Belum ada pengeluaran" subtitle={`Belum ada data pengeluaran untuk ${monthLabel(month, true)}`} />
-        ) : (
-          <Card>
-            <div className="flex items-center gap-2">
-              <div className="h-40 w-40 shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={donut} dataKey="value" innerRadius={40} outerRadius={62} paddingAngle={3} strokeWidth={0}>
-                      {donut.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--popover)", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
-                      formatter={(value: number | string, name: string) => [formatMoney(Number(value), currency), name]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+      {catData.length > 0 && (
+        <ChartCard title={lang === "id" ? "Komposisi kategori" : "Category breakdown"}>
+          <ResponsiveContainer width="100%" height={190}>
+            <PieChart>
+              <Pie data={catData} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={2} strokeWidth={0}>
+                {catData.map((c, i) => <Cell key={i} fill={c.color} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="mt-1 grid grid-cols-2 gap-1">
+            {catData.slice(0, 6).map((c) => (
+              <div key={c.name} className="flex items-center gap-1.5 text-[10px]">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                <span className="min-w-0 flex-1 truncate text-muted-foreground">{c.name}</span>
+                <span className="font-bold">{fmt(c.value)}</span>
               </div>
-              <div className="min-w-0 flex-1 space-y-1.5">
-                {donut.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground">{d.name}</span>
-                    <span className="tnum font-medium">{Math.round((d.value / (totalExpense || 1)) * 100)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        )}
-      </section>
+            ))}
+          </div>
+        </ChartCard>
+      )}
 
       {/* Aktivitas harian */}
-      <section>
-        <SectionTitle title={`Aktivitas Harian ${monthLabel(month)}`} />
-        <Card>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={daily} margin={{ top: 6, right: 6, bottom: 0, left: 6 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--popover)", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
-                  labelFormatter={(l: string | number) => `Tanggal ${l}`}
-                  formatter={(value: number | string, name: string) => [
-                    formatMoney(Number(value), currency),
-                    name === "expense" ? "Keluar" : "Masuk",
-                  ]}
-                />
-                <Line type="monotone" dataKey="expense" stroke="var(--expense)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="income" stroke="var(--income)" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </section>
-
-      {/* Insight */}
-      <section>
-        <SectionTitle title="Insight" />
-        <div className="grid grid-cols-2 gap-2.5">
-          <InsightCard
-            icon={Flame}
-            tint="var(--expense)"
-            title="Rata-rata per hari"
-            value={formatMoney(insights.avgDailySpend, currency)}
-            sub={`${insights.expenseCount}x pengeluaran`}
-          />
-          <InsightCard
-            icon={CalendarClock}
-            tint="oklch(0.65 0.14 200)"
-            title="Proyeksi akhir bulan"
-            value={formatMoney(insights.projectedMonthEnd, currency)}
-            sub="kalau pola sama terus"
-          />
-          {insights.biggestExpense && (
-            <InsightCard
-              icon={TrendingDown}
-              tint="oklch(0.65 0.15 55)"
-              title="Pengeluaran terbesar"
-              value={formatMoney(insights.biggestExpense.amount, currency)}
-              sub={insights.biggestExpense.note || formatDateFull(insights.biggestExpense.date)}
-              className="col-span-2"
-            />
-          )}
-        </div>
-      </section>
+      {dailyData.some((d) => d.expense > 0 || d.income > 0) && (
+        <ChartCard title={lang === "id" ? "Aktivitas harian" : "Daily activity"}>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={dailyData} margin={{ top: 6, right: 6, bottom: 0, left: -18 }}>
+              <XAxis dataKey="day" tick={{ fontSize: 8, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} interval={2} />
+              <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} tickFormatter={fmt} width={58} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number, k: string) => [fmt(v), k === "expense" ? (lang === "id" ? "Keluar" : "Out") : (lang === "id" ? "Masuk" : "In")]} cursor={{ fill: "var(--surface-2)" }} />
+              <Bar dataKey="expense" fill="var(--expense)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="income" fill="var(--income)" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      )}
     </div>
   );
 }
 
-function InsightCard({ icon: Icon, tint, title, value, sub, className }: {
-  icon: typeof TrendingUp; tint: string; title: string; value: string; sub: string; className?: string;
-}) {
+const tooltipStyle = {
+  background: "var(--surface)",
+  border: "1px solid var(--border-t)",
+  borderRadius: 12,
+  fontSize: 11,
+  color: "var(--text)",
+};
+
+/** Agregat pemasukan/pengeluaran dalam satu periode (murni). */
+function sumPeriod(data: import("@/lib/types").Transaction[], p: import("@/lib/types").Period): { income: number; expense: number } {
+  let income = 0, expense = 0;
+  for (const t of data) {
+    if (!inPeriod(t.date, p)) continue;
+    if (t.type === "income") income += t.amount;
+    else if (t.type === "expense") expense += t.amount;
+  }
+  return { income, expense };
+}
+
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className={cn("p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md", className)}>
-      <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: `${tint}1f` }}>
-          <Icon size={11} style={{ color: tint }} />
-        </span>
-        {title}
-      </div>
-      <p className="tnum mt-1.5 text-[17px] font-extrabold tracking-tight">{value}</p>
-      <p className="truncate text-[11px] text-muted-foreground">{sub}</p>
+    <Card className="p-4">
+      <p className="pb-2 text-xs font-bold">{title}</p>
+      {children}
     </Card>
   );
 }

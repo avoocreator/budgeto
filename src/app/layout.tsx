@@ -2,32 +2,20 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
+import { AccentSync, LangSync } from "@/components/budgeto/boot-sync";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   applicationName: "Budgeto",
-  title: {
-    default: "Budgeto — Catatan Keuangan Pribadi",
-    template: "%s · Budgeto",
-  },
+  title: { default: "Budgeto — Catatan Keuangan Pribadi", template: "%s · Budgeto" },
   description:
-    "Aplikasi catatan keuangan pribadi: cepat, offline, gratis. Pantau pengeluaran, budget, dan target tabunganmu.",
+    "Aplikasi catatan keuangan pribadi offline-first: sisa harian, budget per periode gajian, tagihan berulang, widget, dan backup lokal.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Budgeto",
-  },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Budgeto" },
   formatDetection: { telephone: false },
   icons: {
     icon: [
@@ -45,24 +33,21 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#101418" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f7f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1210" },
   ],
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AccentSync />
+          <LangSync />
           {children}
           <Toaster />
+          <SonnerToaster position="top-center" offset={16} />
         </ThemeProvider>
       </body>
     </html>

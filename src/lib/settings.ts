@@ -1,24 +1,52 @@
 // ============================================================
-// BUDGETO v2 — Settings Store (zustand + localStorage persist)
+// BUDGETO v3 — Settings Store (zustand + persist)
+// Tema (mode, preset aksen), bahasa, periode gajian, keamanan,
+// notifikasi, kredensial cloud opsional. Tersimpan di localStorage.
 // ============================================================
 
 "use client";
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { PeriodMode } from "./types";
+
+export interface PinRecord {
+  salt: string;
+  hash: string;
+  iterations: number;
+  length: number; // 4-6, untuk tahu kapan verifikasi dilakukan
+}
 
 export interface Settings {
-  userName: string;
-  currency: string;
+  onboarded: boolean;
+  // Tampilan (F03)
+  themeMode: "light" | "dark" | "system";
+  accent: string; // preset id: emerald | ocean | sunset | violet | rose | gold
+  // Bahasa (F09)
+  lang: "id" | "en";
+  // Periode (F05)
+  periodMode: PeriodMode;
+  payday: number; // 1-31
+  // Keamanan (F07)
+  lockEnabled: boolean;
+  pin: PinRecord | null;
+  autoLockDelay: 0 | 60 | 300; // detik: langsung / 1 menit / 5 menit
+  biometricEnabled: boolean;
+  privacyMode: boolean;
+  // Notifikasi
   notificationsEnabled: boolean;
-  txNotif: boolean; // notifikasi tiap transaksi dicatat
-  budgetAlerts: boolean; // peringatan budget 80% & 100%
-  dailyReminder: boolean; // pengingat catat keuangan harian
-  reminderTime: string; // "HH:MM"
+  txNotif: boolean;
+  budgetAlerts: boolean;
+  dailyReminder: boolean;
+  reminderTime: string;
+  billReminders: boolean;
+  // Cloud (opsional)
   cloudAutoSync: boolean;
-  // Cloud (Supabase) — diisi lewat UI Settings, bukan kode
   supabaseUrl: string;
   supabaseAnonKey: string;
+  // Preferensi alur catat cepat (F02)
+  lastWalletId: string;
+  lastBackupAt: number;
 }
 
 interface SettingsState extends Settings {
@@ -27,16 +55,28 @@ interface SettingsState extends Settings {
 }
 
 const DEFAULTS: Settings = {
-  userName: "",
-  currency: "IDR",
+  onboarded: false,
+  themeMode: "system",
+  accent: "emerald",
+  lang: "id",
+  periodMode: "calendar",
+  payday: 25,
+  lockEnabled: false,
+  pin: null,
+  autoLockDelay: 60,
+  biometricEnabled: false,
+  privacyMode: false,
   notificationsEnabled: true,
   txNotif: true,
   budgetAlerts: true,
   dailyReminder: true,
   reminderTime: "20:00",
+  billReminders: true,
   cloudAutoSync: true,
   supabaseUrl: "",
   supabaseAnonKey: "",
+  lastWalletId: "",
+  lastBackupAt: 0,
 };
 
 export const useSettings = create<SettingsState>()(
@@ -46,6 +86,6 @@ export const useSettings = create<SettingsState>()(
       set: (key, value) => set({ [key]: value } as Partial<Settings>),
       reset: () => set({ ...DEFAULTS }),
     }),
-    { name: "budgeto-settings" }
+    { name: "budgeto-settings-v3" }
   )
 );

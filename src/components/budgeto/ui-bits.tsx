@@ -1,105 +1,116 @@
 // ============================================================
-// BUDGETO v2 — Komponen UI bersama (compact minimalist)
+// BUDGETO v3 — Komponen kecil bersama
+// MoneyText (mode privasi F07), EmptyState, SectionCard, Chip, dsb.
 // ============================================================
 
 "use client";
 
-import {
-  Wallet, Landmark, Banknote, CreditCard, Coins, PiggyBank, Utensils, Coffee,
-  Car, Bus, Fuel, ShoppingBag, ShoppingCart, Clapperboard, Gamepad2, Music,
-  HeartPulse, Pill, Zap, Droplets, Wifi, Smartphone, GraduationCap, BookOpen,
-  Gift, Sparkles, TrendingUp, TrendingDown, Laptop, Briefcase, Home, Plane,
-  Shirt, Baby, PawPrint, Dumbbell, Scissors, Wrench, Shapes, CircleHelp,
-  type LucideIcon,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
+import { useSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/format";
+import { Eye, EyeOff } from "lucide-react";
+import { Icon } from "./icons";
 
-// Kurasi ikon (bundle tetap ramping)
-export const ICON_MAP: Record<string, LucideIcon> = {
-  wallet: Wallet, landmark: Landmark, banknote: Banknote, "credit-card": CreditCard,
-  coins: Coins, "piggy-bank": PiggyBank, utensils: Utensils, coffee: Coffee,
-  car: Car, bus: Bus, fuel: Fuel, "shopping-bag": ShoppingBag,
-  "shopping-cart": ShoppingCart, clapperboard: Clapperboard, gamepad: Gamepad2, music: Music,
-  "heart-pulse": HeartPulse, pill: Pill, zap: Zap, droplets: Droplets,
-  wifi: Wifi, smartphone: Smartphone, "graduation-cap": GraduationCap, book: BookOpen,
-  gift: Gift, sparkles: Sparkles, "trending-up": TrendingUp, "trending-down": TrendingDown,
-  laptop: Laptop, briefcase: Briefcase, home: Home, plane: Plane,
-  shirt: Shirt, baby: Baby, paw: PawPrint, dumbbell: Dumbbell,
-  scissors: Scissors, wrench: Wrench, shapes: Shapes, help: CircleHelp,
-};
-
-export const ICON_CHOICES = Object.keys(ICON_MAP);
-
-export function CatIcon({ name, color, size = 16, className }: { name: string; color?: string; size?: number; className?: string }) {
-  const Icon = ICON_MAP[name] ?? Shapes;
+/** Tampilkan nominal; otomatis •••• bila mode privasi aktif (F07). */
+export function MoneyText({
+  amount, className, compact = false, signed = false, colorize = false, forceHide = false,
+}: {
+  amount: number; className?: string; compact?: boolean; signed?: boolean; colorize?: boolean; forceHide?: boolean;
+}) {
+  const lang = useLang((s) => s.lang);
+  const privacy = useSettings((s) => s.privacyMode);
+  if (privacy || forceHide) {
+    return <span className={cn("big-number tracking-widest", className)}>••••</span>;
+  }
   return (
-    <span
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-lg", className)}
-      style={{ width: size + 10, height: size + 10, backgroundColor: `${color ?? "#64748b"}1f` }}
-    >
-      <Icon size={size} style={{ color: color ?? "#64748b" }} strokeWidth={2.2} />
+    <span className={cn("big-number", colorize && (amount > 0 ? "text-income" : amount < 0 ? "text-expense" : ""), className)}>
+      {formatMoney(amount, lang, { compact, signed })}
     </span>
   );
 }
 
-// ─── Header section ──────────────────────────────────────────
-export function SectionTitle({ title, action }: { title: string; action?: React.ReactNode }) {
+/** Toggle cepat sembunyikan angka (alur I). */
+export function PrivacyToggle({ className }: { className?: string }) {
+  const privacy = useSettings((s) => s.privacyMode);
+  const set = useSettings((s) => s.set);
   return (
-    <div className="mb-2 flex items-center justify-between px-1">
-      <h2 className="text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
+    <button
+      onClick={() => set("privacyMode", !privacy)}
+      aria-label={privacy ? "Tampilkan angka" : "Sembunyikan angka"}
+      className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-surface2 text-muted-foreground ring-1 ring-border/60 transition-colors hover:text-foreground", className)}
+    >
+      {privacy ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
+  );
+}
+
+export function IconBubble({ name, color, size = 36, className }: { name: string; color: string; size?: number; className?: string }) {
+  return (
+    <span
+      className={cn("flex shrink-0 items-center justify-center rounded-full", className)}
+      style={{ width: size, height: size, backgroundColor: `${color}22`, color }}
+    >
+      <Icon name={name} size={Math.round(size * 0.5)} strokeWidth={2.1} />
+    </span>
+  );
+}
+
+export function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-1 pb-1.5">
+      <h2 className="text-[13px] font-bold text-muted-foreground">{children}</h2>
       {action}
     </div>
   );
 }
 
-// ─── Kartu dasar ─────────────────────────────────────────────
-export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
+export function EmptyState({ icon, title, desc, action }: { icon?: React.ReactNode; title: string; desc?: string; action?: React.ReactNode }) {
   return (
-    <div className={cn("card-soft rounded-2xl p-3", className)}>{children}</div>
-  );
-}
-
-export function EmptyState({ icon: Icon = Shapes, title, subtitle }: { icon?: LucideIcon; title: string; subtitle?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-card/50 py-10 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent">
-        <Icon size={22} className="text-primary/70" />
-      </span>
-      <p className="text-sm font-semibold text-foreground/75">{title}</p>
-      {subtitle && <p className="max-w-[240px] text-xs leading-relaxed text-muted-foreground">{subtitle}</p>}
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card/50 px-6 py-8 text-center">
+      {icon && <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface2 text-muted-foreground">{icon}</div>}
+      <p className="text-sm font-bold">{title}</p>
+      {desc && <p className="max-w-[240px] text-xs leading-relaxed text-muted-foreground">{desc}</p>}
+      {action}
     </div>
   );
 }
 
-// ─── Progress bar ────────────────────────────────────────────
-export function ProgressBar({ percent, color, className }: { percent: number; color?: string; className?: string }) {
-  const clamped = Math.min(100, Math.max(0, percent));
-  const base = color ?? (percent >= 100 ? "var(--expense)" : "var(--primary)");
-  return (
-    <div className={cn("h-[7px] w-full overflow-hidden rounded-full bg-muted", className)}>
-      <div
-        className="h-full rounded-full transition-all duration-700 ease-out"
-        style={{
-          width: `${clamped}%`,
-          background: `linear-gradient(90deg, color-mix(in oklab, ${base} 70%, transparent), ${base})`,
-        }}
-      />
-    </div>
-  );
+export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("rounded-2xl border bg-card shadow-sm", className)}>{children}</div>;
 }
 
-// ─── Jumlah uang ─────────────────────────────────────────────
-export function Amount({ value, currency, type, className, compact }: {
-  value: number;
-  currency: string;
-  type?: "income" | "expense";
-  className?: string;
-  compact?: boolean;
+export function Segmented<T extends string>({
+  value, options, onChange, className,
+}: {
+  value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; className?: string;
 }) {
   return (
-    <span className={cn("tnum font-semibold", type === "income" && "text-income", type === "expense" && "text-expense", className)}>
-      {formatMoney(value, currency, { compact })}
-    </span>
+    <div className={cn("grid gap-1 rounded-xl bg-surface2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
+          className={cn(
+            "rounded-lg px-3 py-2 text-xs font-semibold transition-all",
+            value === o.value ? "bg-card text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Progress bar tipis warna sesuai persen (budget/widget). */
+export function ProgressBar({ percent, className }: { percent: number; className?: string }) {
+  const p = Math.max(0, Math.min(100, percent));
+  const color = percent >= 100 ? "bg-bad" : percent >= 80 ? "bg-warn" : "bg-primary";
+  return (
+    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-surface2", className)}>
+      <div className={cn("h-full rounded-full transition-all duration-500", color)} style={{ width: `${p}%` }} />
+    </div>
   );
 }

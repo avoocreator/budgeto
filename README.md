@@ -2,25 +2,30 @@
 
 ### Take Control of Your Money.
 
-Budgeto is a modern, offline-first personal finance application designed to make managing money simple, intuitive, and accessible. Track income and expenses, manage multiple wallets, set budgets, build savings, and understand your financial habits through a clean and minimalist interface.
+Budgeto is a modern, offline-first personal finance application designed to make managing money simple, intuitive, and accessible. Track income and expenses, manage multiple wallets, set budgets, organize recurring bills, build savings, and understand your financial habits through a clean and minimalist interface.
 
 Free to use, ad-free, and designed to keep your finances accessible even without an internet connection.
 
 ## ✨ Features
 
-- **Financial Dashboard** — View your total balance, monthly income and expenses, budgets, and savings goals in one place.
-- **Quick Transactions** — Record income and expenses with a streamlined transaction interface.
+- **Smart Dashboard** — Monitor your total balance, monthly income and expenses, and remaining daily budget until payday with real-time financial status indicators.
+- **Quick Transactions** — Record income and expenses through a streamlined interface with a native-style numeric keypad and smart category suggestions.
+- **Recurring Bills** — Manage regular payments such as rent, internet, and subscriptions with automatic or confirmation-based recording and duplicate prevention.
+- **Flexible Payday** — Set your payday from the 1st to the 31st and organize financial periods around your personal payment schedule.
 - **Multi-Wallet Management** — Organize cash, bank accounts, and e-wallets while supporting transfers between wallets.
-- **Smart Budgeting** — Set category-based budgets and monitor spending with progress indicators and notifications at 80% and 100% usage.
-- **Savings Goals** — Create savings targets, track contributions, and monitor your progress toward financial goals.
-- **Financial Analytics** — Explore spending breakdowns, daily activity, six-month trends, and financial insights.
-- **Reminders & Notifications** — Stay informed about transactions, budget limits, and daily financial routines.
-- **Offline-First Experience** — Manage locally stored financial data without an internet connection.
-- **Optional Cloud Sync** — Synchronize and back up financial data across devices using Supabase.
-- **Progressive Web App** — Install Budgeto from a supported browser for an app-like experience.
-- **Android Widget** — Access balance information and quick transaction actions from your home screen.
-- **Data Portability** — Import and export JSON backups and export transactions to CSV.
-- **Personalized Appearance** — Switch between dark and light themes.
+- **Smart Budgeting** — Set category-based spending limits and monitor progress with warnings at 80% and 100% usage.
+- **Savings Goals** — Create savings targets, record regular contributions, and track progress toward your financial goals.
+- **Transaction Management** — Search, filter, delete, and undo transaction changes with ease.
+- **Financial Analytics** — Explore six-month spending trends, category breakdowns, daily activity, and financial insights.
+- **Reminders & Notifications** — Receive transaction notifications, budget warnings, and daily reminders.
+- **App Lock** — Protect access to the application using a PIN stored as a PBKDF2-derived hash rather than plain text.
+- **Bilingual Interface** — Switch between Indonesian and English directly from the settings.
+- **Customizable Appearance** — Choose between dark and light modes and six accent colors.
+- **Offline-First Experience** — Access locally stored financial data without an internet connection using IndexedDB.
+- **Optional Cloud Sync** — Back up and synchronize financial data across devices through Supabase.
+- **Progressive Web App (PWA)** — Install Budgeto from a supported browser for an app-like experience.
+- **Android App & Widget** — Use the Android application and home-screen widget for balance information and quick transaction actions.
+- **Data Portability** — Import and export JSON backups and export transaction records to CSV.
 
 ## 🚀 Getting Started
 
@@ -31,14 +36,14 @@ Free to use, ad-free, and designed to keep your finances accessible even without
 
 ### Installation
 
-Clone the repository and navigate to the project directory:
+Clone the repository:
 
 ```bash
 git clone https://github.com/avoocreator/budgeto.git
 cd budgeto
 ```
 
-Install the dependencies:
+Install dependencies:
 
 ```bash
 bun install
@@ -54,13 +59,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Production Build
 
-Build the application for production:
+Build the application:
 
 ```bash
 bun run build
 ```
 
-To serve the generated production output locally:
+Start the production server:
 
 ```bash
 bun run start
@@ -68,43 +73,43 @@ bun run start
 
 ## 📖 How to Use Budgeto
 
-**1. Set Up Your Wallets**
+### 1. Set Up Your Finances
 
-Create wallets to organize your available funds, such as cash, bank accounts, and e-wallets.
+Configure your preferred language, appearance, payday, and other application settings. Create wallets to organize your available funds.
 
-**2. Record Your Transactions**
+### 2. Record Transactions
 
-Add income and expenses, assign categories, select the appropriate wallet, and include additional details when needed.
+Add income and expenses, select a wallet and category, and include notes when needed. Use the quick transaction interface to record daily financial activity.
 
-**3. Manage Your Budgets**
+### 3. Manage Budgets and Bills
 
-Create spending limits for different categories and monitor your usage through the dashboard.
+Set spending limits for individual categories and monitor budget usage through the dashboard. Add recurring bills to organize regular payments and configure how they are recorded.
 
-**4. Track Your Savings**
+### 4. Track Savings Goals
 
-Set financial goals, record contributions, and monitor your progress toward each target.
+Create financial targets, record contributions, and monitor your progress toward each savings goal.
 
-**5. Analyze Your Finances**
+### 5. Review Financial Insights
 
-Use reports and visualizations to understand spending patterns, review cash flow, and identify areas where you can improve your financial habits.
+Use reports and charts to understand spending patterns, review cash flow, and identify opportunities to improve your financial habits.
 
-**6. Manage Your Data**
+### 6. Protect and Manage Your Data
 
-Export your financial records for backup or further analysis. Configure optional cloud synchronization when you need to access your data across devices.
+Enable the app lock to protect access to your finances. Export backups regularly and configure optional cloud synchronization when you need to access your data across devices.
 
 ## 🎨 Design Philosophy
 
 Budgeto emphasizes simplicity, clarity, and functionality. Its compact, minimalist interface keeps essential financial information accessible without unnecessary visual clutter.
 
-Every interaction is designed to make recording transactions and understanding personal finances feel straightforward, encouraging consistent and informed financial habits.
+The application combines practical financial tools with customizable themes, bilingual support, and streamlined interactions to make daily money management more approachable.
 
 ## 🔒 Privacy & Data
 
-Budgeto follows an offline-first approach, using IndexedDB for local data storage. Core local data management does not require a continuous internet connection.
+Budgeto follows an offline-first approach, storing financial data locally using IndexedDB. Core local data management does not require a continuous internet connection.
 
-Cloud synchronization is optional and powered by Supabase. Its authentication and Row Level Security (RLS) capabilities help protect user data when cloud features are configured.
+Cloud synchronization is optional and powered by Supabase. Supabase authentication and Row Level Security (RLS) help protect user data when cloud features are configured.
 
-Users should maintain their own backups and protect any credentials associated with their cloud configuration.
+The app lock uses PBKDF2-based PIN hashing instead of storing the PIN as plain text. Users should still protect their devices, secure their cloud credentials, and maintain their own backups.
 
 ## 🛠️ Built With
 
@@ -115,7 +120,7 @@ Users should maintain their own backups and protect any credentials associated w
 - **Dexie.js** — Local IndexedDB storage
 - **Supabase** — Optional authentication and cloud synchronization
 - **Recharts** — Financial charts and analytics
-- **next-themes** — Dark and light theme management
+- **next-themes** — Theme management
 - **Capacitor** — Android application integration
 - **GitHub Actions** — Automated Android builds
 
@@ -124,3 +129,4 @@ Users should maintain their own backups and protect any credentials associated w
 Budgeto aims to make personal finance management more approachable by combining practical financial tools, thoughtful design, offline accessibility, and user-focused privacy in one application.
 
 **Budgeto — Understand your money. Build better habits.**
+
