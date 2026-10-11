@@ -1,17 +1,6 @@
-// ============================================================
-// BUDGETO v3 — Widget 4x2 offline (F04, sisi web/app)
-// Prinsip: widget TIDAK PERNAH mengambil data sendiri.
-// App menghitung ringkasan tiap data berubah, lalu:
-//  - di APK: plugin Capacitor kustom `WidgetBridge` menulis snapshot
-//    ke SharedPreferences (Android) + memicu AppWidgetManager.
-//  - di web/PWA: snapshot disimpan ke localStorage (untuk uji/preview).
-// Kontrak snapshot: tech-stack.md 2.3 (schema:1).
-// Deep link tombol widget: budgeto://add?type=expense|income →
-// ditangkap sisi web di app-shell (/?action=add&type=...).
-// ============================================================
-
 "use client";
 
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { db } from "./db";
 import type { WidgetSnapshot, DailyStatus } from "./types";
 import { computeDailyRemaining, totalBalance, budgetProgressList } from "./money";
@@ -21,6 +10,9 @@ import { useSettings } from "./settings";
 import { useLang } from "./i18n";
 
 const SNAPSHOT_KEY = "budgeto-widget-snapshot";
+
+// Plugin native (WidgetBridgePlugin.java) — hanya ada di APK
+const WidgetBridge = registerPlugin<{ push(options: { snapshot: string }): Promise<void> }>("WidgetBridge");
 
 export function buildSnapshot(themeModeOverride?: "light" | "dark"): WidgetSnapshot {
   const s = useSettings.getState();
@@ -98,11 +90,9 @@ export async function pushWidgetSnapshot(): Promise<void> {
     // 1) localStorage — fallback + sumber untuk widget preview
     localStorage.setItem(SNAPSHOT_KEY, json);
 
-    // 2) APK: plugin kustom WidgetBridge (didftarkan di MainActivity Android)
-    const cap = (window as unknown as { Capacitor?: { Plugins?: Record<string, { push?: (opts: { snapshot: string }) => void }> } }).Capacitor;
-    const bridge = cap?.Plugins?.WidgetBridge;
-    if (bridge?.push) {
-      try { bridge.push({ snapshot: json }); } catch { /* plugin belum siap — abaikan */ }
+    // 2) APK: kirim ke widget lewat plugin WidgetBridge
+    if (Capacitor.isNativePlatform()) {
+      try { await WidgetBridge.push({ snapshot: json }); } catch { /* widget belum siap — abaikan */ }
     }
   } catch {
     // snapshot gagal — app tetap berjalan

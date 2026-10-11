@@ -5,9 +5,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="12dp">
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
 
-    <!-- Area saldo (klik → buka app) -->
+    <!-- Area info (klik → buka app) -->
     <LinearLayout
         android:id="@+id/widget_top"
         android:layout_width="match_parent"
@@ -23,48 +26,116 @@
             android:gravity="center_vertical">
 
             <TextView
+                android:id="@+id/widget_brand"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Budgeto"
+                android:text="BUDGETO"
                 android:textColor="#34D399"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.08" />
+                android:letterSpacing="0.14" />
 
             <TextView
-                android:id="@+id/widget_refresh"
+                android:id="@+id/widget_updated"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⟳"
-                android:textColor="#80FFFFFF"
-                android:textSize="14sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp" />
+                android:text="14:05"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp" />
         </LinearLayout>
 
         <TextView
-            android:id="@+id/widget_balance"
+            android:id="@+id/widget_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Rp0"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_subtitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Memuat…"
-            android:textColor="#B3FFFFFF"
+            android:layout_marginTop="6dp"
+            android:text="Sisa hari ini"
+            android:textColor="#99FFFFFF"
             android:textSize="11sp"
             android:maxLines="1"
             android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_amount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Rp85.000"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <!-- Bar: hanya satu yang tampil sesuai status (ok/warn/bad) -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp">
+
+            <View
+                android:id="@+id/widget_bar_space"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/widget_bar_ok"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:max="100"
+                android:progress="62"
+                android:progressDrawable="@drawable/widget_progress_ok" />
+
+            <ProgressBar
+                android:id="@+id/widget_bar_warn"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:max="100"
+                android:progress="0"
+                android:visibility="gone"
+                android:progressDrawable="@drawable/widget_progress_warn" />
+
+            <ProgressBar
+                android:id="@+id/widget_bar_bad"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:max="100"
+                android:progress="0"
+                android:visibility="gone"
+                android:progressDrawable="@drawable/widget_progress_bad" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_meta_left"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="62% budget terpakai"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_meta_right"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Saldo Rp1.200.000"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp"
+                android:maxLines="1" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Tombol cepat -->
