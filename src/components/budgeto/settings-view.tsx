@@ -17,11 +17,11 @@ import { db } from "@/lib/db";
 import { pushWidgetSnapshot } from "@/lib/widget";
 import { sendOtp, verifyOtp, signOutCloud, getSessionEmail, syncNow, getSyncState, onSyncChange } from "@/lib/sync";
 import { currentPeriod, periodLabel } from "@/lib/period";
-import { ACCENT_PRESETS, PALETTE } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Card, Segmented, IconBubble } from "./ui-bits";
-import { requestPermission, notify, diagnoseNotifications } from "@/lib/notifications";
-import { ArrowLeft, Sun, Moon, Monitor, Palette, Languages, CalendarDays, ShieldCheck, Bell, DatabaseBackup, CloudUpload, TriangleAlert, Check, Loader2, CloudOff, Info } from "lucide-react";
+import { Card, Segmented } from "./ui-bits";
+import { requestPermission, diagnoseNotifications } from "@/lib/notifications";
+import { THEME_SCHEMAS, toneLabel, resolveIsDark, resolvePalette } from "@/lib/themes";
+import { ArrowLeft, Sun, Moon, Monitor, Palette, Languages, CalendarDays, ShieldCheck, Bell, DatabaseBackup, CloudUpload, TriangleAlert, Check, Loader2, CloudOff, Info, Thermometer } from "lucide-react";
 import { toast } from "sonner";
 
 export function SettingsView({ onBack }: { onBack: () => void }) {
@@ -55,7 +55,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
 
       {/* ── Tampilan ── */}
       <Section icon={<Palette size={15} />} title={dict.appearance}>
-        <div className="space-y-3 p-4">
+        <div className="space-y-4 p-4">
           <div>
             <p className="pb-1.5 text-[11px] font-bold text-muted-foreground">{dict.themeMode}</p>
             <Segmented
@@ -69,22 +69,30 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
             />
           </div>
           <div>
-            <p className="pb-1.5 text-[11px] font-bold text-muted-foreground">{dict.accent}</p>
-            <div className="flex flex-wrap gap-2">
-              {ACCENT_PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => set("accent", p.id)}
-                  aria-pressed={s.accent === p.id}
-                  aria-label={p.label}
-                  className={cn("flex items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-3 text-[11px] font-bold transition-all",
-                    s.accent === p.id ? "bg-primary/12 text-primary ring-1 ring-primary/40" : "bg-surface2 text-muted-foreground")}
-                >
-                  <span className="h-4 w-4 rounded-full" style={{ backgroundColor: p.swatch }} />
-                  {p.label}
-                  {s.accent === p.id && <Check size={11} />}
-                </button>
-              ))}
+            <p className="pb-1.5 text-[11px] font-bold text-muted-foreground">{dict.themeSchema}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {THEME_SCHEMAS.map((sc) => <SchemaCard key={sc.id} schema={sc} active={s.themeSchema === sc.id} onSelect={() => { set("themeSchema", sc.id); set("accent", sc.id); setTimeout(() => void pushWidgetSnapshot(), 60); }} />)}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between pb-1.5">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground"><Thermometer size={12} /> {dict.tone}</p>
+              <p className="text-[11px] font-extrabold text-primary">{toneLabel(s.tone, t.lang)}</p>
+            </div>
+            <input
+              type="range"
+              min={-100}
+              max={100}
+              step={5}
+              value={s.tone}
+              aria-label={dict.tone}
+              onChange={(e) => { set("tone", Number(e.target.value)); setTimeout(() => void pushWidgetSnapshot(), 60); }}
+              className="tone-slider h-9 w-full cursor-pointer appearance-none bg-transparent"
+            />
+            <div className="flex justify-between px-0.5 text-[9px] font-bold text-muted-foreground">
+              <span>❄️ {t.lang === "id" ? "Dingin" : "Cool"}</span>
+              <span>{t.lang === "id" ? "Netral" : "Neutral"}</span>
+              <span>{t.lang === "id" ? "Hangat" : "Warm"} 🔥</span>
             </div>
           </div>
         </div>
@@ -148,6 +156,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         <div className="space-y-2 p-4">
           <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission().then((p) => { if (p === "denied") toast.error("Izin notifikasi ditolak. Aktifkan lewat Pengaturan HP → Aplikasi → Budgeto → Notifikasi."); }); }} />
           <Toggle label={dict.notifTx} checked={s.txNotif} onChange={(v) => set("txNotif", v)} disabled={!s.notificationsEnabled} />
+          <Toggle label={dict.notifActions} checked={s.actionNotif} onChange={(v) => set("actionNotif", v)} disabled={!s.notificationsEnabled} />
           <Toggle label={dict.notifBudget} checked={s.budgetAlerts} onChange={(v) => set("budgetAlerts", v)} disabled={!s.notificationsEnabled} />
           <Toggle label={dict.notifDaily} checked={s.dailyReminder} onChange={(v) => set("dailyReminder", v)} disabled={!s.notificationsEnabled} />
           {s.dailyReminder && (
@@ -288,7 +297,7 @@ function enDict() { return DICT_EN; }
 // kamus lokal ringkas (hindari import melingkar dengan i18n)
 const DICT_ID = {
   settings: "Pengaturan", appearance: "Tampilan", themeMode: "Mode", system: "Ikut sistem", light: "Terang", dark: "Gelap",
-  accent: "Warna aksen", language: "Bahasa", periodPayday: "Periode & tanggal gajian", periodMode: "Aturan periode",
+  themeSchema: "Schema warna", tone: "Tone warna", accent: "Warna aksen", language: "Bahasa", periodPayday: "Periode & tanggal gajian", periodMode: "Aturan periode",
   calendarMode: "Bulan kalender", paydayMode: "Tanggal gajian", paydayDay: "Tanggal gajian (1–31)",
   periodPreview: "Periode sekarang", periodChangeWarn: "Mengubah aturan periode akan menghitung ulang dashboard, budget, dan laporan. Angka laporan lama bisa berubah.",
   security: "Keamanan & privasi", appLock: "Kunci aplikasi (PIN)", appLockDesc: "Minta PIN saat app dibuka / kembali dari latar belakang",
@@ -298,7 +307,7 @@ const DICT_ID = {
   resetPinData: "Hapus PIN & semua data", typeErase: "Ketik HAPUS untuk konfirmasi",
   biometric: "Biometrik (segera di APK)", biometricSoon: "Tersedia di build APK berikutnya",
   enterPin: "Buat PIN 4–6 digit", confirmPin: "Ulangi PIN", pinMismatch: "PIN tidak sama",
-  notifications: "Notifikasi", notifEnabled: "Notifikasi aktif", notifTx: "Catat transaksi", notifBudget: "Peringatan budget 80% & 100%",
+  notifications: "Notifikasi", notifEnabled: "Notifikasi aktif", notifTx: "Catat transaksi", notifActions: "Setiap aksi (dompet, target, budget, dll)", notifBudget: "Peringatan budget 80% & 100%",
   notifDaily: "Pengingat catat harian", reminderTime: "Jam pengingat", notifBills: "Pengingat tagihan",
   dataBackup: "Data & backup", exportJson: "Ekspor backup (JSON)", exportCsv: "Ekspor transaksi (CSV)",
   importJson: "Impor backup (JSON)", importMerge: "Impor menggabungkan: data dengan id sama ditimpa dari file, data lain tetap.",
@@ -312,7 +321,7 @@ const DICT_ID = {
 
 const DICT_EN: typeof DICT_ID = {
   settings: "Settings", appearance: "Appearance", themeMode: "Mode", system: "System", light: "Light", dark: "Dark",
-  accent: "Accent color", language: "Language", periodPayday: "Period & payday", periodMode: "Period rule",
+  themeSchema: "Color scheme", tone: "Color tone", accent: "Accent color", language: "Language", periodPayday: "Period & payday", periodMode: "Period rule",
   calendarMode: "Calendar month", paydayMode: "Payday date", paydayDay: "Payday (1–31)",
   periodPreview: "Current period", periodChangeWarn: "Changing the period rule recalculates dashboard, budgets, and reports. Past numbers may change.",
   security: "Security & privacy", appLock: "App lock (PIN)", appLockDesc: "Require PIN when opening or returning to the app",
@@ -322,7 +331,7 @@ const DICT_EN: typeof DICT_ID = {
   resetPinData: "Erase PIN & all data", typeErase: "Type ERASE to confirm",
   biometric: "Biometric (coming to APK)", biometricSoon: "Available in the next APK build",
   enterPin: "Create a 4–6 digit PIN", confirmPin: "Repeat PIN", pinMismatch: "PINs do not match",
-  notifications: "Notifications", notifEnabled: "Notifications on", notifTx: "Transaction recorded", notifBudget: "Budget alerts 80% & 100%",
+  notifications: "Notifications", notifEnabled: "Notifications on", notifTx: "Transaction recorded", notifActions: "Every action (wallets, goals, budgets, etc.)", notifBudget: "Budget alerts 80% & 100%",
   notifDaily: "Daily logging reminder", reminderTime: "Reminder time", notifBills: "Bill reminders",
   dataBackup: "Data & backup", exportJson: "Export backup (JSON)", exportCsv: "Export transactions (CSV)",
   importJson: "Import backup (JSON)", importMerge: "Import merges: rows with the same id are overwritten from the file; others are kept.",
@@ -342,6 +351,46 @@ function Section({ icon, title, children, danger }: { icon: React.ReactNode; tit
       </p>
       <Card className={danger ? "border-bad/30" : undefined}>{children}</Card>
     </section>
+  );
+}
+
+/** Kartu pilihan schema warna dengan pratinjau mini (bg + aksen + in/out). */
+function SchemaCard({ schema, active, onSelect }: { schema: (typeof THEME_SCHEMAS)[number]; active: boolean; onSelect: () => void }) {
+  const lang = useLang((x) => x.lang);
+  const mode = useSettings((x) => x.themeMode);
+  const dark = resolveIsDark(mode);
+  const p = resolvePalette(schema.id, dark, 0);
+  return (
+    <button
+      onClick={onSelect}
+      aria-pressed={active}
+      className={cn(
+        "relative overflow-hidden rounded-2xl p-3 text-left transition-all duration-200 active:scale-[0.97]",
+        active ? "ring-2 ring-primary shadow-md" : "ring-1 ring-border hover:shadow-sm"
+      )}
+      style={{ backgroundColor: p.bg }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-extrabold" style={{ color: p.text }}>
+          {schema.emoji} {schema.label}
+        </span>
+        {active && (
+          <span className="flex h-4 w-4 items-center justify-center rounded-full" style={{ backgroundColor: p.accent }}>
+            <Check size={10} color={p.accentContrast} strokeWidth={3.2} />
+          </span>
+        )}
+      </div>
+      {/* pratinjau mini */}
+      <div className="mt-2 flex items-center gap-1.5">
+        <span className="h-5 w-9 rounded-md" style={{ backgroundColor: p.surface, boxShadow: `inset 0 0 0 1px ${p.border}` }} />
+        <span className="h-5 w-5 rounded-full" style={{ backgroundColor: p.accent }} />
+        <span className="h-5 w-5 rounded-full" style={{ backgroundColor: p.income }} />
+        <span className="h-5 w-5 rounded-full" style={{ backgroundColor: p.expense }} />
+      </div>
+      <p className="mt-1.5 text-[10px] font-bold" style={{ color: p.textMuted }}>
+        {lang === "id" ? "Ketuk untuk pakai" : "Tap to apply"}
+      </p>
+    </button>
   );
 }
 

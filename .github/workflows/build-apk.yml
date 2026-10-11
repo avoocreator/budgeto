@@ -1,7 +1,8 @@
 name: Build APK Budgeto
 
 # Membuat APK Android otomatis (gratis) setiap kali code di-push ke branch main.
-# APK muncul di tab "Releases" repo dengan nama Budgeto.apk
+# APK muncul di tab "Releases" repo dengan nama Budgeto.apk.
+# Bisa juga dijalankan manual: tab Actions → Build APK Budgeto → Run workflow.
 
 on:
   push:
@@ -10,6 +11,11 @@ on:
 
 permissions:
   contents: write
+
+# Batalkan build lama bila ada push baru beruntun (hemat menit Actions)
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-apk:
@@ -28,11 +34,12 @@ jobs:
         with:
           node-version: 22
 
-      - name: Pasang Java 21 (wajib untuk Android)
+      - name: Pasang Java 21 (wajib untuk Android) + cache Gradle
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+          cache: gradle
 
       - name: Install dependencies
         run: bun install --frozen-lockfile || bun install
@@ -74,7 +81,7 @@ jobs:
           path: apk/Budgeto.apk
 
       - name: Buat/perbarui Release "latest" (APK bisa diunduh semua orang)
-        uses: marvinpinto/action-automatic-releases@latest
+        uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: "latest"

@@ -128,13 +128,38 @@ export interface DailyRemaining {
   dailyTarget: number; // rata-rata harian budget
 }
 
-// ─── Snapshot widget (F04) — kontrak di tech-stack.md 2.3 ───
+// ─── Snapshot widget (F04) — kontrak v2 ───
+// v2 menambahkan schemaId + colors (warna tema aktual dari app) agar
+// widget Android bisa mengikuti tema aplikasi secara presisi.
+export interface WidgetThemeColors {
+  bg: string;
+  surface: string;
+  surface2: string;
+  border: string;
+  text: string;
+  textMuted: string;
+  accent: string;
+  accentContrast: string;
+  income: string;
+  expense: string;
+  warn: string;
+  bad: string;
+}
+
 export interface WidgetSnapshot {
-  schema: 1;
+  schema: 1 | 2;
   updatedAt: string; // ISO dengan offset zona waktu
   locale: string;
   privacy: boolean;
-  theme: { mode: "light" | "dark" | "system"; preset: string };
+  theme: {
+    mode: "light" | "dark";
+    /** legacy preset id (emerald | ocean | …) — untuk APK lama */
+    preset: string;
+    /** schema tema baru (mocha | emerald | aqua | sunset | lavender) */
+    schemaId?: string;
+    /** warna final (sudah termasuk tone) — untuk APK v2 */
+    colors?: WidgetThemeColors;
+  };
   daily: { amount: number; status: DailyStatus | "none"; untilDate: string | null };
   budget: { usedPercent: number };
   balance: number;
@@ -164,6 +189,7 @@ export const PALETTE = [
   "#ec4899", "#84cc16", "#f97316", "#14b8a6", "#a855f7",
 ] as const;
 
+// legacy (dipertahankan untuk kompatibilitas — digunakan migrasi settings)
 export const ACCENT_PRESETS = [
   { id: "emerald", label: "Emerald", swatch: "#34D399" },
   { id: "ocean", label: "Ocean", swatch: "#22d3ee" },

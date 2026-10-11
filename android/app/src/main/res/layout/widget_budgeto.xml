@@ -1,14 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ============================================================
+     Budgeto Widget 4x2 — v2 (design halus: kartu rounded, pill button)
+     Warna teks & background di-set runtime oleh BudgetoWidgetProvider
+     sesuai tema aplikasi (schema + mode + tone).
+     ============================================================ -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_bg"
+    android:background="@drawable/widget_bg_emerald_dark"
     android:paddingLeft="16dp"
     android:paddingRight="16dp"
     android:paddingTop="12dp"
     android:paddingBottom="12dp">
+
+    <!-- Baris brand -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_brand"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="BUDGETO"
+            android:textColor="#34D399"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18" />
+
+        <TextView
+            android:id="@+id/widget_updated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="14:05"
+            android:textColor="#99FFFFFF"
+            android:textSize="9sp" />
+    </LinearLayout>
 
     <!-- Area info (klik → buka app) -->
     <LinearLayout
@@ -19,37 +51,10 @@
         android:orientation="vertical"
         android:gravity="center_vertical">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/widget_brand"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="BUDGETO"
-                android:textColor="#34D399"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.14" />
-
-            <TextView
-                android:id="@+id/widget_updated"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="14:05"
-                android:textColor="#99FFFFFF"
-                android:textSize="10sp" />
-        </LinearLayout>
-
         <TextView
             android:id="@+id/widget_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
             android:text="Sisa hari ini"
             android:textColor="#99FFFFFF"
             android:textSize="11sp"
@@ -62,7 +67,7 @@
             android:layout_height="wrap_content"
             android:text="Rp85.000"
             android:textColor="#FFFFFF"
-            android:textSize="28sp"
+            android:textSize="27sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end" />
@@ -71,19 +76,19 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp">
+            android:layout_marginTop="7dp">
 
             <FrameLayout
                 android:id="@+id/widget_bar_space"
                 android:layout_width="match_parent"
-                android:layout_height="6dp"
+                android:layout_height="8dp"
                 android:visibility="gone" />
 
             <ProgressBar
                 android:id="@+id/widget_bar_ok"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="6dp"
+                android:layout_height="8dp"
                 android:max="100"
                 android:progress="62"
                 android:progressDrawable="@drawable/widget_progress_ok" />
@@ -92,7 +97,7 @@
                 android:id="@+id/widget_bar_warn"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="6dp"
+                android:layout_height="8dp"
                 android:max="100"
                 android:progress="0"
                 android:visibility="gone"
@@ -102,7 +107,7 @@
                 android:id="@+id/widget_bar_bad"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="6dp"
+                android:layout_height="8dp"
                 android:max="100"
                 android:progress="0"
                 android:visibility="gone"
@@ -112,7 +117,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="5dp"
             android:orientation="horizontal">
 
             <TextView
@@ -138,7 +143,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Tombol cepat -->
+    <!-- Tombol cepat: pill lembut mengikuti warna income/expense tema -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -156,7 +161,7 @@
             android:paddingTop="9dp"
             android:paddingBottom="9dp"
             android:text="− Keluar"
-            android:textColor="#FFFFFF"
+            android:textColor="#FB7185"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -171,7 +176,7 @@
             android:paddingTop="9dp"
             android:paddingBottom="9dp"
             android:text="+ Masuk"
-            android:textColor="#06281C"
+            android:textColor="#34D399"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>

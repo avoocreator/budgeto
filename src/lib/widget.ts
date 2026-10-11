@@ -8,6 +8,7 @@ import { currentPeriod, periodLabel } from "./period";
 import { todayStr } from "./format";
 import { useSettings } from "./settings";
 import { useLang } from "./i18n";
+import { resolveIsDark, resolvePalette, type ThemePalette } from "./themes";
 
 const SNAPSHOT_KEY = "budgeto-widget-snapshot";
 
@@ -44,14 +45,18 @@ async function buildSnapshotAsync(
   const progresses = budgetProgressList(budgets, txs, period);
   const totalBudget = progresses.reduce((sum, p) => sum + p.budget.amount, 0);
   const usedPercent = totalBudget > 0 ? Math.round((daily.spent / totalBudget) * 100) : 0;
-  const dark = themeModeOverride ?? resolveDark();
+  const dark: boolean = themeModeOverride ? themeModeOverride === "dark" : resolveIsDark(s.themeMode);
+
+  // Palet final (schema + mode + tone) — dikirim ke widget agar tampilan
+  // widget 100% mengikuti tema aplikasi.
+  const palette = resolvePalette(s.themeSchema, dark, s.tone);
 
   return {
-    schema: 1,
+    schema: 2,
     updatedAt: new Date().toISOString(),
     locale: s.lang,
     privacy: s.privacyMode,
-    theme: { mode: dark ? "dark" : "light", preset: s.accent },
+    theme: { mode: dark ? "dark" : "light", preset: s.accent, schemaId: s.themeSchema, colors: paletteToColors(palette) },
     daily: {
       amount: Math.round(daily.amount),
       status: daily.ready ? (daily.status as DailyStatus) : "none",
@@ -70,11 +75,13 @@ async function buildSnapshotAsync(
   };
 }
 
-function resolveDark(): boolean {
-  const mode = useSettings.getState().themeMode;
-  if (mode === "dark") return true;
-  if (mode === "light") return false;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+function paletteToColors(p: ThemePalette) {
+  return {
+    bg: p.bg, surface: p.surface, surface2: p.surface2, border: p.border,
+    text: p.text, textMuted: p.textMuted,
+    accent: p.accent, accentContrast: p.accentContrast,
+    income: p.income, expense: p.expense, warn: p.warn, bad: p.bad,
+  };
 }
 
 /** Hitung & kirim snapshot ke widget. Cepat, tanpa jaringan. */

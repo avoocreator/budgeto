@@ -12,6 +12,8 @@ import { db, uid } from "./db";
 import type { RecurringRule, PendingBill, Transaction } from "./types";
 import { todayStr, addDays } from "./format";
 import { daysInMonth } from "./format";
+import { notify, notifyAction } from "./notifications";
+import { useLang } from "./i18n";
 
 /** Jatuh tempo berikutnya setelah `fromDate` (inklusif? — eksklusif: tanggal berikutnya setelah tanggal acuan). */
 export function nextOccurrence(rule: RecurringRule, afterDate: string): string {
@@ -78,6 +80,7 @@ export async function processDueRules(): Promise<{ posted: number; pending: numb
     let guard = 0;
 
     // mode auto: buat transaksi untuk setiap occurence terlewat
+    let postedThisRule = 0;
     if (rule.mode === "auto") {
       while (next && next <= today && guard < 120) {
         guard++;
@@ -99,6 +102,7 @@ export async function processDueRules(): Promise<{ posted: number; pending: numb
           };
           await db.transactions.put(tx);
           posted++;
+          postedThisRule++;
           lastPosted = next;
         }
         next = nextOccurrence(rule, next);
@@ -123,6 +127,16 @@ export async function processDueRules(): Promise<{ posted: number; pending: numb
 
     if (changed) {
       await db.recurringRules.update(rule.id, { nextDate: next, lastPostedDate: lastPosted, pending: pendingList, updatedAt: Date.now() });
+    }
+    if (postedThisRule > 0) {
+      const id = useLang.getState().lang;
+      void notifyAction(
+        id === "id" ? "Tagihan otomatis tercatat" : "Bill auto-posted",
+        id === "id"
+          ? `"${rule.name}" · Rp${new Intl.NumberFormat("id-ID").format(rule.amount)} (${postedThisRule}x)`
+          : `"${rule.name}" · Rp${new Intl.NumberFormat("id-ID").format(rule.amount)} (${postedThisRule}x)`,
+        "alarm-clock"
+      );
     }
   }
   return { posted, pending };
@@ -151,6 +165,14 @@ export async function confirmPendingBill(ruleId: string, billId: string, amountO
   await db.transactions.put(tx);
   const rest = rule.pending.filter((p) => p.id !== billId);
   await db.recurringRules.update(ruleId, { pending: rest, lastPostedDate: bill.dueDate, updatedAt: Date.now() });
+  const id = useLang.getState().lang;
+  void notify(
+    id === "id" ? "Tagihan tercatat" : "Bill recorded",
+    id === "id"
+      ? `"${rule.name}" · Rp${new Intl.NumberFormat("id-ID").format(tx.amount)}`
+      : `"${rule.name}" · Rp${new Intl.NumberFormat("id-ID").format(tx.amount)}`,
+    "alarm-clock"
+  );
 }
 
 /** Lewati tagihan tanpa mencatat. */

@@ -13,12 +13,22 @@ import { currentPeriod } from "./period";
 import { periodLabel } from "./period";
 import { todayStr } from "./format";
 import { scheduleSync } from "./sync";
-import { notify, budgetAlertFlags, logNotif } from "./notifications";
+import { notify, notifyAction, budgetAlertFlags, logNotif } from "./notifications";
 import { useSettings } from "./settings";
+import { useLang } from "./i18n";
 import { pushWidgetSnapshot } from "./widget";
 import { firstOccurrence } from "./recurring";
 
 const now = () => Date.now();
+
+/** Bantu format uang ringkas untuk isi notifikasi (ikut bahasa aktif). */
+function rp(n: number): string {
+  const lang = useLang.getState().lang;
+  return new Intl.NumberFormat(lang === "en" ? "en-US" : "id-ID").format(Math.abs(n));
+}
+function L(): "id" | "en" {
+  return useLang.getState().lang;
+}
 
 function afterChange(): void {
   void pushWidgetSnapshot();
@@ -61,7 +71,7 @@ export async function saveTransaction(input: {
   await db.transactions.put(tx);
   useSettings.getState().set("lastWalletId", input.walletId);
 
-  void fireTxNotification(tx);
+  void fireTxNotification(tx, !!editing);
   void checkBudgetAlerts();
   afterChange();
   return tx;
@@ -71,6 +81,11 @@ export async function deleteTransaction(id: string): Promise<Transaction | null>
   const tx = await db.transactions.get(id);
   if (!tx || tx.deleted) return tx ?? null;
   await db.transactions.put({ ...tx, deleted: true, updatedAt: now() });
+  void notifyAction(
+    L() === "id" ? "Transaksi dihapus" : "Transaction deleted",
+    L() === "id" ? `Rp${rp(tx.amount)} dihapus — bisa dikembalikan lewat Undo` : `Rp${rp(tx.amount)} removed — restore via Undo`,
+    "trash"
+  );
   afterChange();
   return tx;
 }
@@ -78,19 +93,33 @@ export async function deleteTransaction(id: string): Promise<Transaction | null>
 /** Undo hapus (F08): transaksi kembali dengan id yang sama. */
 export async function restoreTransaction(tx: Transaction): Promise<void> {
   await db.transactions.put({ ...tx, deleted: false, updatedAt: now() });
+  void notifyAction(
+    L() === "id" ? "Transaksi dipulihkan" : "Transaction restored",
+    L() === "id" ? `Rp${rp(tx.amount)} kembali tercatat` : `Rp${rp(tx.amount)} is back`,
+    "trending-up"
+  );
   afterChange();
 }
 
-async function fireTxNotification(tx: Transaction): Promise<void> {
+async function fireTxNotification(tx: Transaction, isEdit = false): Promise<void> {
   const s = useSettings.getState();
   if (!s.notificationsEnabled || !s.txNotif) { logNotif(`transaksi dilewati: aktif=${s.notificationsEnabled} txNotif=${s.txNotif}`); return; }
+  const id = L();
   if (tx.type === "transfer") {
-    void notify("Transfer dicatat", `Antar dompet sebesar Rp${tx.amount.toLocaleString("id-ID")}`, "wallet");
+    void notify(
+      id === "id" ? (isEdit ? "Transfer diperbarui" : "Transfer dicatat") : (isEdit ? "Transfer updated" : "Transfer recorded"),
+      id === "id" ? `Antar dompet sebesar Rp${rp(tx.amount)}` : `Wallet transfer of Rp${rp(tx.amount)}`,
+      "wallet"
+    );
     return;
   }
   const cat = tx.categoryId ? await db.categories.get(tx.categoryId) : null;
-  const title = tx.type === "income" ? "Pemasukan dicatat" : "Pengeluaran dicatat";
-  const body = `${cat?.name ?? "Umum"} · ${tx.type === "income" ? "+" : "-"}Rp${tx.amount.toLocaleString("id-ID")}${tx.note ? ` · ${tx.note}` : ""}`;
+  const title = isEdit
+    ? (id === "id" ? "Transaksi diperbarui" : "Transaction updated")
+    : tx.type === "income"
+      ? (id === "id" ? "Pemasukan dicatat" : "Income recorded")
+      : (id === "id" ? "Pengeluaran dicatat" : "Expense recorded");
+  const body = `${cat?.name ?? (id === "id" ? "Umum" : "General")} · ${tx.type === "income" ? "+" : "-"}Rp${rp(tx.amount)}${tx.note ? ` · ${tx.note}` : ""}`;
   void notify(title, body, tx.type === "income" ? "trending-up" : "trending-down");
 }
 
@@ -152,6 +181,11 @@ export async function saveCategory(input: { id?: string; name: string; type: "in
     createdAt: existing?.createdAt ?? now(), updatedAt: now(), deleted: false,
   };
   await db.categories.put(cat);
+  void notifyAction(
+    L() === "id" ? (existing ? "Kategori diperbarui" : "Kategori ditambahkan") : (existing ? "Category updated" : "Category added"),
+    cat.name,
+    "tags"
+  );
   afterChange();
 }
 
@@ -159,6 +193,11 @@ export async function deleteCategory(id: string): Promise<void> {
   const cat = await db.categories.get(id);
   if (!cat) return;
   await db.categories.put({ ...cat, deleted: true, updatedAt: now() });
+  void notifyAction(
+    L() === "id" ? "Kategori dihapus" : "Category deleted",
+    cat.name,
+    "trash"
+  );
   afterChange();
 }
 
@@ -171,6 +210,11 @@ export async function saveWallet(input: { id?: string; name: string; icon: strin
     createdAt: existing?.createdAt ?? now(), updatedAt: now(), deleted: false,
   };
   await db.wallets.put(w);
+  void notifyAction(
+    L() === "id" ? (existing ? "Dompet diperbarui" : "Dompet ditambahkan") : (existing ? "Wallet updated" : "Wallet added"),
+    `${w.name} · Rp${rp(w.initialBalance)}`,
+    "wallet"
+  );
   afterChange();
 }
 
@@ -178,6 +222,11 @@ export async function deleteWallet(id: string): Promise<void> {
   const w = await db.wallets.get(id);
   if (!w) return;
   await db.wallets.put({ ...w, deleted: true, updatedAt: now() }); // selalu arsip (soft delete)
+  void notifyAction(
+    L() === "id" ? "Dompet dihapus" : "Wallet deleted",
+    w.name,
+    "trash"
+  );
   afterChange();
 }
 
@@ -189,6 +238,12 @@ export async function saveBudget(input: { id?: string; categoryId: string; amoun
     createdAt: existing?.createdAt ?? now(), updatedAt: now(), deleted: false,
   };
   await db.budgets.put(b);
+  const cat = await db.categories.get(b.categoryId);
+  void notifyAction(
+    L() === "id" ? (existing ? "Budget diperbarui" : "Budget ditambahkan") : (existing ? "Budget updated" : "Budget added"),
+    `${cat?.name ?? ""} · Rp${rp(b.amount)}/${L() === "id" ? "periode" : "period"}`,
+    "alarm-clock"
+  );
   void checkBudgetAlerts();
   afterChange();
 }
@@ -197,6 +252,12 @@ export async function deleteBudget(id: string): Promise<void> {
   const b = await db.budgets.get(id);
   if (!b) return;
   await db.budgets.put({ ...b, deleted: true, updatedAt: now() });
+  const cat = await db.categories.get(b.categoryId);
+  void notifyAction(
+    L() === "id" ? "Budget dihapus" : "Budget deleted",
+    cat?.name ?? "",
+    "trash"
+  );
   afterChange();
 }
 
@@ -215,6 +276,11 @@ export async function saveGoal(input: { id?: string; name: string; targetAmount:
   };
   if (g.currentAmount >= g.targetAmount) g.status = "achieved";
   await db.goals.put(g);
+  void notifyAction(
+    L() === "id" ? (existing ? "Target diperbarui" : "Target tabungan dibuat") : (existing ? "Goal updated" : "Savings goal created"),
+    `${g.name} · Rp${rp(g.currentAmount)} / Rp${rp(g.targetAmount)}`,
+    "piggy-bank"
+  );
   afterChange();
 }
 
@@ -222,9 +288,22 @@ export async function addToGoal(id: string, amount: number): Promise<void> {
   const g = await db.goals.get(id);
   if (!g || amount <= 0) return;
   const updated: Goal = { ...g, currentAmount: g.currentAmount + amount, updatedAt: now() };
+  const pct = Math.min(100, Math.round((updated.currentAmount / Math.max(1, updated.targetAmount)) * 100));
   if (updated.currentAmount >= updated.targetAmount) {
     updated.status = "achieved";
-    void notify("Target tercapai! 🎉", `Tabungan "${g.name}" sudah penuh`, "party-popper");
+    void notify(
+      L() === "id" ? "Target tercapai! 🎉" : "Goal achieved! 🎉",
+      L() === "id" ? `Tabungan "${g.name}" sudah penuh` : `Savings "${g.name}" is full`,
+      "party-popper"
+    );
+  } else {
+    void notifyAction(
+      L() === "id" ? "Nabung tercatat" : "Savings recorded",
+      L() === "id"
+        ? `+Rp${rp(amount)} ke "${g.name}" · ${pct}% tercapai`
+        : `+Rp${rp(amount)} to "${g.name}" · ${pct}% reached`,
+      "piggy-bank"
+    );
   }
   await db.goals.put(updated);
   afterChange();
@@ -234,6 +313,11 @@ export async function deleteGoal(id: string): Promise<void> {
   const g = await db.goals.get(id);
   if (!g) return;
   await db.goals.put({ ...g, deleted: true, updatedAt: now() });
+  void notifyAction(
+    L() === "id" ? "Target dihapus" : "Goal deleted",
+    g.name,
+    "trash"
+  );
   afterChange();
 }
 
@@ -266,6 +350,11 @@ export async function saveRecurringRule(input: {
     deleted: false,
   };
   await db.recurringRules.put(rule);
+  void notifyAction(
+    L() === "id" ? (existing ? "Aturan tagihan diperbarui" : "Aturan tagihan dibuat") : (existing ? "Recurring rule updated" : "Recurring rule created"),
+    `${rule.name} · Rp${rp(rule.amount)}`,
+    "alarm-clock"
+  );
   afterChange();
 }
 
@@ -274,6 +363,11 @@ export async function deleteRecurringRule(id: string): Promise<void> {
   if (!r) return;
   // transaksi yang sudah tercatat TIDAK ikut terhapus
   await db.recurringRules.put({ ...r, deleted: true, active: false, updatedAt: now() });
+  void notifyAction(
+    L() === "id" ? "Aturan tagihan dihapus" : "Recurring rule deleted",
+    r.name,
+    "trash"
+  );
   afterChange();
 }
 
@@ -346,6 +440,13 @@ export async function importData(json: string, mode: "merge" | "replace" = "merg
     await putAll("recurringRules", db.recurringRules);
 
     useSettings.getState().set("lastBackupAt", ts);
+    void notifyAction(
+      L() === "id" ? "Data dipulihkan" : "Data restored",
+      L() === "id"
+        ? `Backup dipulihkan · ${counts.transactions ?? 0} transaksi`
+        : `Backup restored · ${counts.transactions ?? 0} transactions`,
+      "badge"
+    );
     afterChange();
     return { ok: true, message: "Data berhasil dipulihkan", counts };
   } catch {
@@ -360,6 +461,11 @@ export async function resetAllData(): Promise<void> {
   ]);
   const { seedIfEmpty } = await import("./db");
   await seedIfEmpty();
+  void notifyAction(
+    L() === "id" ? "Semua data dihapus" : "All data erased",
+    L() === "id" ? "Budgeto kembali ke kondisi awal" : "Budgeto has been reset to a fresh state",
+    "trash"
+  );
   afterChange();
 }
 

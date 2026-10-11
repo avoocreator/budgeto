@@ -2,6 +2,8 @@
 
 ### Take Control of Your Money.
 
+[![Download APK](https://img.shields.io/badge/Download-APK-34D399?style=for-the-badge&logo=android&logoColor=white)](https://github.com/avoocreator/budgeto/releases/latest)
+
 Budgeto is a modern, offline-first personal finance application designed to make managing money simple, intuitive, and accessible. Track income and expenses, manage multiple wallets, set budgets, organize recurring bills, build savings, and understand your financial habits through a clean and minimalist interface.
 
 Free to use, ad-free, and designed to keep your finances accessible even without an internet connection.
@@ -17,15 +19,27 @@ Free to use, ad-free, and designed to keep your finances accessible even without
 - **Savings Goals** — Create savings targets, record regular contributions, and track progress toward your financial goals.
 - **Transaction Management** — Search, filter, delete, and undo transaction changes with ease.
 - **Financial Analytics** — Explore six-month spending trends, category breakdowns, daily activity, and financial insights.
-- **Reminders & Notifications** — Receive transaction notifications, budget warnings, and daily reminders.
+- **Reminders & Notifications** — System-level notifications for every action: transactions, transfers, wallets, savings goals, budgets, categories, recurring bills, and backups — plus budget warnings and daily reminders.
 - **App Lock** — Protect access to the application using a PIN stored as a PBKDF2-derived hash rather than plain text.
 - **Bilingual Interface** — Switch between Indonesian and English directly from the settings.
-- **Customizable Appearance** — Choose between dark and light modes and six accent colors.
+- **5 Color Schemes + Tone Control** — Choose between Mocha, Emerald, Aqua, Sunset, and Lavender — each with light & dark mode — plus a cool ↔ warm tone slider to fine-tune the atmosphere.
+- **Themed Home-Screen Widget** — The Android widget follows the app theme precisely (colors, accent, and status tones) with a soft, modern design.
 - **Offline-First Experience** — Access locally stored financial data without an internet connection using IndexedDB.
 - **Optional Cloud Sync** — Back up and synchronize financial data across devices through Supabase.
 - **Progressive Web App (PWA)** — Install Budgeto from a supported browser for an app-like experience.
 - **Android App & Widget** — Use the Android application and home-screen widget for balance information and quick transaction actions.
 - **Data Portability** — Import and export JSON backups and export transaction records to CSV.
+
+## 📱 Download the Android APK
+
+You do **not** need Android Studio. GitHub Actions builds the APK for you automatically:
+
+1. Push this repository to GitHub (branch `main`).
+2. Open the **Actions** tab — the workflow *“Build APK Budgeto”* runs on every push (or trigger it manually via **Run workflow**).
+3. When it finishes, open the **Releases** tab → **Budgeto APK (terbaru)** → download `Budgeto.apk`.
+4. Install it on your phone (allow “install from unknown sources” when asked).
+
+The APK is a debug-signed build — perfect for personal use. The download link for the newest build is always: `https://github.com/<user>/<repo>/releases/latest`
 
 ## 🚀 Getting Started
 

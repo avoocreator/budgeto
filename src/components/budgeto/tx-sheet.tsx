@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/lib/db";
 import { saveTransaction, suggestCategories } from "@/lib/repo";
 import { useSettings } from "@/lib/settings";
@@ -47,6 +48,7 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
   const [openRows, setOpenRows] = useState<{ note: boolean; wallet: boolean; date: boolean }>({ note: false, wallet: false, date: false });
   const [suggestions, setSuggestions] = useState<{ ranked: { id: string; name: string; icon: string; color: string }[]; top: { id: string; name: string; icon: string; color: string } | null }>({ ranked: [], top: null });
   const [saving, setSaving] = useState(false);
+  const [savedFx, setSavedFx] = useState(false);
 
   const isEdit = !!state.edit;
 
@@ -111,15 +113,14 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
         date,
         note,
       });
-      // getar ringan saat tersimpan (design.md §5)
+      // getar ringan + animasi sukses sebelum sheet tertutup (design.md §5)
       navigator.vibrate?.(18);
-      onClose();
+      setSavedFx(true);
+      setTimeout(() => { onClose(); setSavedFx(false); }, 640);
     } finally {
       setSaving(false);
     }
   }, [canSave, saving, state.edit, type, amount, categoryId, walletId, toWalletId, date, note, onClose]);
-
-  if (!state.open) return null;
 
   const typeTabs: { value: TxType; label: string }[] = [
     { value: "expense", label: lang === "id" ? "Pengeluaran" : "Expense" },
@@ -132,29 +133,55 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
     : shownCats.map((c) => ({ id: c.id, name: c.name, icon: c.icon, color: c.color }));
 
   return (
+    <AnimatePresence>
+      {state.open && (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Catat transaksi">
-      <button aria-label="Tutup" className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="anim-sheet relative mx-auto w-full max-w-md rounded-t-[28px] border bg-card pb-[calc(env(safe-area-inset-bottom,0px)+12px)] shadow-2xl">
-        {/* Pegangan + jenis */}
-        <div className="flex justify-center pt-2.5">
-          <span className="h-1.5 w-10 rounded-full bg-border" />
-        </div>
-        <div className="flex gap-1.5 px-4 pt-3">
-          {typeTabs.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => { setType(t.value); if (t.value !== "transfer") setCategoryId(null); }}
-              className={cn(
-                "flex-1 rounded-xl py-2 text-xs font-bold transition-all",
-                type === t.value
-                  ? t.value === "income" ? "bg-income/15 text-income ring-1 ring-income/30" : t.value === "expense" ? "bg-expense/15 text-expense ring-1 ring-expense/30" : "bg-primary/15 text-primary ring-1 ring-primary/30"
-                  : "bg-surface2 text-muted-foreground"
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <motion.button
+          aria-label="Tutup"
+          className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        />
+        <motion.div
+          className="relative mx-auto w-full max-w-md rounded-t-[28px] border bg-card pb-[calc(env(safe-area-inset-bottom,0px)+12px)] shadow-2xl"
+          initial={{ y: "64%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "70%" }}
+          transition={{ type: "spring", stiffness: 340, damping: 34 }}
+        >
+          {/* Pegangan + jenis */}
+          <div className="flex justify-center pt-2.5">
+            <span className="h-1.5 w-10 rounded-full bg-border" />
+          </div>
+          <div className="flex gap-1.5 px-4 pt-3">
+            {typeTabs.map((t) => (
+              <button
+                key={t.value}
+                onClick={() => { setType(t.value); if (t.value !== "transfer") setCategoryId(null); }}
+                className={cn(
+                  "relative flex-1 rounded-xl py-2 text-xs font-bold transition-all",
+                  type === t.value
+                    ? t.value === "income" ? "text-income" : t.value === "expense" ? "text-expense" : "text-primary"
+                    : "text-muted-foreground"
+                )}
+              >
+                {type === t.value && (
+                  <motion.span
+                    layoutId="tx-type-pill"
+                    className={cn(
+                      "absolute inset-0 rounded-xl",
+                      t.value === "income" ? "bg-income/15 ring-1 ring-income/30" : t.value === "expense" ? "bg-expense/15 ring-1 ring-expense/30" : "bg-primary/15 ring-1 ring-primary/30"
+                    )}
+                    transition={{ type: "spring", stiffness: 480, damping: 40 }}
+                  />
+                )}
+                <span className="relative z-10">{t.label}</span>
+              </button>
+            ))}
+          </div>
 
         {/* Nominal besar */}
         <div className="px-4 pt-3 text-center">
@@ -273,36 +300,68 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
           </div>
         </div>
 
-        {/* Papan angka */}
+        {/* Papan angka — umpan balik tekan per tombol */}
         <div className="grid grid-cols-3 gap-1.5 px-4 pt-2.5">
           {NUMS.map((n) => (
-            <button
+            <motion.button
               key={n}
               onClick={() => press(n)}
-              className="h-11 rounded-xl bg-surface2 text-lg font-bold text-foreground transition-transform active:scale-95 active:bg-border/70"
+              whileTap={{ scale: 0.9, backgroundColor: "var(--border)" }}
+              transition={{ type: "spring", stiffness: 600, damping: 30 }}
+              className="h-11 rounded-xl bg-surface2 text-lg font-bold text-foreground"
               aria-label={n === "⌫" ? "Hapus angka" : n}
             >
               {n}
-            </button>
+            </motion.button>
           ))}
         </div>
 
         {/* Simpan — lebar penuh */}
         <div className="px-4 pt-2.5">
-          <button
+          <motion.button
             onClick={() => void doSave()}
             disabled={!canSave || saving}
+            whileTap={canSave ? { scale: 0.97 } : undefined}
             className={cn(
-              "flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-extrabold transition-all active:scale-[0.98]",
+              "flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-extrabold transition-all",
               canSave ? "bg-primary text-primary-foreground shadow-md" : "cursor-not-allowed bg-surface2 text-muted-foreground"
             )}
           >
             <Check size={17} strokeWidth={2.6} />
             {saving ? (lang === "id" ? "Menyimpan…" : "Saving…") : lang === "id" ? "Simpan" : "Save"}
-          </button>
+          </motion.button>
         </div>
-      </div>
+
+        {/* Animasi sukses — lingkaran centang membesar saat transaksi tersimpan */}
+        <AnimatePresence>
+          {savedFx && (
+            <motion.div
+              className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.span
+                className="absolute h-24 w-24 rounded-full bg-primary/15"
+                initial={{ scale: 0.4, opacity: 0.9 }}
+                animate={{ scale: 2.6, opacity: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+              <motion.span
+                className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl"
+                initial={{ scale: 0, rotate: -30 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 380, damping: 18 }}
+              >
+                <Check size={30} strokeWidth={3} />
+              </motion.span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
+      )}
+    </AnimatePresence>
   );
 }
 

@@ -1,6 +1,8 @@
 // ============================================================
-// BUDGETO v3 — Notifikasi (system via SW + in-app toast)
-// - Notifikasi saat transaksi dicatat
+// BUDGETO v3.1 — Notifikasi (system via SW + in-app toast)
+// - Notifikasi saat transaksi dicatat/diubah/dihapus
+// - Notifikasi setiap aksi: dompet, goal, budget, kategori, tagihan,
+//   backup (notifyAction)
 // - Peringatan budget 80% / 100% (sekali per level per bulan/periode)
 // - Pengingat catat harian
 // - Pengingat tagihan H-1 (F06)
@@ -145,10 +147,12 @@ export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
 }
 
 /** Tampilkan notifikasi: selalu toast in-app; system notification bila izin ada. */
-export async function notify(title: string, body: string, icon = "wallet"): Promise<void> {
+export async function notify(title: string, body: string, icon = "wallet", opts?: { toast?: boolean }): Promise<void> {
   logNotif(`notify: ${title}`);
   // Toast statis & sinkron — tidak boleh memblokir notifikasi sistem.
-  try { toast(title, { description: body }); } catch { /* toast opsional */ }
+  if (opts?.toast !== false) {
+    try { toast(title, { description: body }); } catch { /* toast opsional */ }
+  }
 
   if (isNativeApp()) {
     try {
@@ -181,6 +185,18 @@ export async function notify(title: string, body: string, icon = "wallet"): Prom
       new Notification(title, { body, icon: iconUrl });
     }
   } catch { /* notifikasi gagal — toast sudah muncul */ }
+}
+
+// ─── Notifikasi per-aksi (dompet, goal, budget, kategori, tagihan, backup) ──
+// Hanya notifikasi sistem di HP (tanpa toast in-app agar UI tidak bising);
+// UI sudah punya umpan balik sendiri saat aksi dilakukan.
+export async function notifyAction(title: string, body: string, icon = "wallet"): Promise<void> {
+  const s = (await import("./settings")).useSettings.getState();
+  if (!s.notificationsEnabled || !s.actionNotif) {
+    logNotif(`aksi dilewati: aktif=${s.notificationsEnabled} actionNotif=${s.actionNotif}`);
+    return;
+  }
+  await notify(title, body, icon, { toast: false });
 }
 
 // ─── Pengingat harian ────────────────────────────────────────

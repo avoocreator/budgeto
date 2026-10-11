@@ -10,6 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { Home, ArrowLeftRight, PieChart, LayoutGrid, Plus, Sun, Moon, Loader2, CloudOff, Cloud, Check, Download, PiggyBank, Target, Wallet as WalletIcon, Tags, Settings2, BarChart3, Repeat } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -254,32 +255,45 @@ export function AppShell() {
         </div>
       </header>
 
-      {/* Konten */}
+      {/* Konten — transisi antar view dengan AnimatePresence */}
       <main ref={scrollRef} className="thin-scroll flex-1 overflow-y-auto px-4 pb-28 pt-2">
-        <div key={viewKey} className="anim-rise">
-          {subView === "goals" ? <GoalsView onBack={() => setSubView(null)} />
-            : subView === "budgets" ? <BudgetsView onBack={() => setSubView(null)} />
-              : subView === "wallets" ? <WalletsView onBack={() => setSubView(null)} />
-                : subView === "categories" ? <CategoriesView onBack={() => setSubView(null)} />
-                  : subView === "bills" ? <BillsView onBack={() => setSubView(null)} />
-                    : subView === "settings" ? <SettingsView onBack={() => setSubView(null)} />
-                      : tab === "dashboard" ? <DashboardView go={go} onEditTx={openEdit} />
-                        : tab === "transactions" ? <TransactionsView onEditTx={openEdit} />
-                          : tab === "reports" ? <ReportsView />
-                            : <MenuView go={go} id={id} onNotification={requestNotification} walletCount={walletCount} />}
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={viewKey}
+            initial={{ opacity: 0, y: 16, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.995 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {subView === "goals" ? <GoalsView onBack={() => setSubView(null)} />
+              : subView === "budgets" ? <BudgetsView onBack={() => setSubView(null)} />
+                : subView === "wallets" ? <WalletsView onBack={() => setSubView(null)} />
+                  : subView === "categories" ? <CategoriesView onBack={() => setSubView(null)} />
+                    : subView === "bills" ? <BillsView onBack={() => setSubView(null)} />
+                      : subView === "settings" ? <SettingsView onBack={() => setSubView(null)} />
+                        : tab === "dashboard" ? <DashboardView go={go} onEditTx={openEdit} />
+                          : tab === "transactions" ? <TransactionsView onEditTx={openEdit} />
+                            : tab === "reports" ? <ReportsView />
+                              : <MenuView go={go} id={id} onNotification={requestNotification} walletCount={walletCount} />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* FAB */}
+      {/* FAB — muncul dengan spring + denyut cahaya + umpan balik tekan */}
       <div className="absolute bottom-[74px] left-1/2 z-20 -translate-x-1/2">
-        <span aria-hidden className="absolute inset-0 -m-1.5 rounded-[22px] bg-primary/40 blur-md" />
-        <button
+        <span aria-hidden className="fab-glow absolute inset-0 -m-1.5 rounded-[22px] bg-primary/40 blur-md" />
+        <motion.button
           onClick={() => openAdd()}
           aria-label={id ? "Tambah transaksi" : "Add transaction"}
-          className="fab-pop relative flex h-[54px] w-[54px] items-center justify-center rounded-[18px] bg-primary text-primary-foreground shadow-xl ring-1 ring-white/25 transition-transform duration-200 active:scale-90"
+          initial={{ scale: 0, rotate: -40 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 18, delay: 0.1 }}
+          whileTap={{ scale: 0.86, rotate: -6 }}
+          whileHover={{ scale: 1.06 }}
+          className="relative flex h-[54px] w-[54px] items-center justify-center rounded-[18px] bg-primary text-primary-foreground shadow-xl ring-1 ring-white/25"
         >
           <Plus size={26} strokeWidth={2.6} className="drop-shadow" />
-        </button>
+        </motion.button>
       </div>
 
       {/* Navigasi bawah */}
@@ -309,19 +323,28 @@ function NavBtn({ item, active, onClick }: { item: { key: string; label: string;
     <button
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className="group flex flex-col items-center gap-1 rounded-xl py-1 outline-none"
+      className="group relative flex flex-col items-center gap-1 rounded-xl py-1 outline-none active:scale-95 transition-transform"
     >
-      <span
-        className={cn(
-          "flex h-7 w-12 items-center justify-center rounded-full transition-all duration-300",
-          active ? "bg-primary/15" : "bg-transparent group-active:bg-muted"
+      <span className="relative flex h-7 w-12 items-center justify-center rounded-full">
+        {/* pill aktif meluncur antar tab (layoutId bersama) */}
+        {active && (
+          <motion.span
+            layoutId="nav-active-pill"
+            className="absolute inset-0 rounded-full bg-primary/15"
+            transition={{ type: "spring", stiffness: 480, damping: 38, mass: 0.6 }}
+          />
         )}
-      >
-        <Icon
-          size={19}
-          strokeWidth={active ? 2.5 : 1.9}
-          className={cn("transition-all duration-300", active ? "scale-110 text-primary" : "text-muted-foreground group-hover:text-foreground/70")}
-        />
+        <motion.span
+          animate={{ scale: active ? 1.12 : 1, y: active ? -1 : 0 }}
+          transition={{ type: "spring", stiffness: 420, damping: 24 }}
+          className="relative"
+        >
+          <Icon
+            size={19}
+            strokeWidth={active ? 2.5 : 1.9}
+            className={cn("transition-colors duration-300", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground/70")}
+          />
+        </motion.span>
       </span>
       <span className={cn("text-[9.5px] leading-none transition-colors", active ? "font-bold text-primary" : "font-medium text-muted-foreground")}>
         {item.label}

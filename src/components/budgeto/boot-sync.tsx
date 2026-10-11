@@ -1,7 +1,11 @@
 // ============================================================
-// BUDGETO v3 — Sinkronisasi atribut html (tema & bahasa)
-// AccentSync: pasang data-accent pada <html> (F03) + kirim ulang
-// snapshot widget saat tema berubah (tech-stack.md 2.4).
+// BUDGETO v3.1 — Sinkronisasi tema & bahasa ke <html>
+// ThemeSync:
+//  - terapkan schema warna (5 schema) + tone (dingin↔hangat) sebagai
+//    CSS variables inline pada <html> (sumber kebenaran: lib/themes.ts)
+//  - pasang data-schema & data-accent (legacy) pada <html>
+//  - mode light/dark/system → next-themes
+//  - kirim ulang snapshot widget saat tema/privasi berubah
 // LangSync: bahasa awal mengikuti sistem (F09) + pasang data-lang.
 // ============================================================
 
@@ -12,9 +16,12 @@ import { useTheme } from "next-themes";
 import { useSettings } from "@/lib/settings";
 import { useLang, initLangFromSystem } from "@/lib/i18n";
 import { pushWidgetSnapshot } from "@/lib/widget";
+import { applyPalette, resolveIsDark, resolvePalette } from "@/lib/themes";
 
 export function AccentSync() {
   const accent = useSettings((s) => s.accent);
+  const themeSchema = useSettings((s) => s.themeSchema);
+  const tone = useSettings((s) => s.tone);
   const themeMode = useSettings((s) => s.themeMode);
   const privacyMode = useSettings((s) => s.privacyMode);
   const { setTheme } = useTheme();
@@ -24,9 +31,22 @@ export function AccentSync() {
     setTheme(themeMode);
   }, [themeMode, setTheme]);
 
+  // Terapkan palet penuh (schema + mode + tone) ke CSS variables
   useEffect(() => {
-    document.documentElement.dataset.accent = accent;
-  }, [accent]);
+    const apply = () => {
+      const dark = resolveIsDark(themeMode);
+      const p = resolvePalette(themeSchema, dark, tone);
+      applyPalette(p);
+      document.documentElement.dataset.schema = themeSchema;
+      document.documentElement.dataset.accent = themeSchema; // legacy selector
+      document.documentElement.dataset.tone = String(tone);
+    };
+    apply();
+    if (themeMode !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [themeSchema, themeMode, tone]);
 
   useEffect(() => {
     if (themeMode !== "system") return;
@@ -37,9 +57,9 @@ export function AccentSync() {
   }, [themeMode]);
 
   useEffect(() => {
-    // snapshot ikut diperbarui saat mode/preset/privasi berubah
+    // snapshot ikut diperbarui saat schema/mode/tone/privasi berubah
     void pushWidgetSnapshot();
-  }, [accent, themeMode, privacyMode]);
+  }, [themeSchema, accent, themeMode, tone, privacyMode]);
 
   return null;
 }

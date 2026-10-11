@@ -16,7 +16,7 @@ import { currentPeriod, periodLabel } from "@/lib/period";
 import { useSettings } from "@/lib/settings";
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Card, MoneyText, SectionTitle, ProgressBar, EmptyState, PrivacyToggle, IconBubble } from "./ui-bits";
+import { Card, MoneyText, SectionTitle, ProgressBar, EmptyState, PrivacyToggle, IconBubble, AnimatedMoney } from "./ui-bits";
 import { Icon } from "./icons";
 import type { View } from "./types";
 import { ArrowRight, ChevronRight, Info, CalendarClock, PiggyBank, TrendingUp, TrendingDown, Wallet2 } from "lucide-react";
@@ -69,8 +69,8 @@ export function DashboardView({ go, onEditTx }: { go: (v: View) => void; onEditT
   return (
     <div className="space-y-4 pb-2">
       {/* ── ANGKA UTAMA: sisa harian ── */}
-      <Card className="relative overflow-hidden p-5">
-        <div className="absolute -right-10 -top-14 h-36 w-36 rounded-full bg-primary/8 blur-2xl" aria-hidden />
+      <Card className="anim-rise relative overflow-hidden p-5">
+        <div className="drift absolute -right-10 -top-14 h-36 w-36 rounded-full bg-primary/8 blur-2xl" aria-hidden />
         <div className="relative">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground">
@@ -82,7 +82,7 @@ export function DashboardView({ go, onEditTx }: { go: (v: View) => void; onEditT
           {daily.ready ? (
             <button className="mt-1.5 text-left" onClick={() => setShowBreakdown((v) => !v)} aria-expanded={showBreakdown}>
               <div className="flex items-end gap-2">
-                <MoneyText amount={daily.amount} className={cn("text-[42px] font-extrabold leading-none", statusColor)} />
+                <AnimatedMoney amount={daily.amount} className={cn("text-[42px] font-extrabold leading-none", statusColor)} />
               </div>
               <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold", statusChip)}>
@@ -122,7 +122,7 @@ export function DashboardView({ go, onEditTx }: { go: (v: View) => void; onEditT
 
       {/* ── Progress budget periode ── */}
       {totalBudget > 0 && (
-        <Card className="p-4">
+        <Card className="anim-rise d1 p-4">
           <div className="flex items-center justify-between pb-2">
             <p className="text-xs font-bold">{lang === "id" ? "Progress budget" : "Budget progress"}</p>
             <p className="text-xs font-semibold text-muted-foreground">{Math.round(usedPct)}%</p>
@@ -136,14 +136,14 @@ export function DashboardView({ go, onEditTx }: { go: (v: View) => void; onEditT
       )}
 
       {/* ── Ringkasan: saldo, in, out ── */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="anim-rise d2 grid grid-cols-3 gap-2">
         <MiniStat label={lang === "id" ? "Saldo" : "Balance"} amount={balance} icon="wallet" tint="var(--text)" />
         <MiniStat label={lang === "id" ? "Masuk" : "In"} amount={periodIncome} icon="trending-up" tint="var(--income)" />
         <MiniStat label={lang === "id" ? "Keluar" : "Out"} amount={daily.spent} icon="trending-down" tint="var(--expense)" />
       </div>
 
       {/* ── Tagihan terdekat ── */}
-      <section>
+      <section className="anim-rise d3">
         <SectionTitle
           action={
             <button onClick={() => go("bills")} className="flex items-center gap-0.5 text-[11px] font-bold text-primary">
@@ -174,7 +174,7 @@ export function DashboardView({ go, onEditTx }: { go: (v: View) => void; onEditT
       </section>
 
       {/* ── Transaksi terakhir ── */}
-      <section>
+      <section className="anim-rise d4">
         <SectionTitle
           action={
             <button onClick={() => go("transactions")} className="flex items-center gap-0.5 text-[11px] font-bold text-primary">
@@ -211,12 +211,12 @@ function Row({ label, value, bold }: { label: string; value: number; bold?: bool
 
 function MiniStat({ label, amount, icon, tint }: { label: string; amount: number; icon: string; tint: string }) {
   return (
-    <Card className="p-3">
+    <Card className="p-3 transition-transform duration-200 active:scale-[0.96]">
       <div className="flex items-center gap-1.5 pb-1">
         <Icon name={icon} size={12} style={{ color: tint }} />
         <span className="text-[10px] font-semibold text-muted-foreground">{label}</span>
       </div>
-      <MoneyText amount={amount} className="text-[15px] font-extrabold" compact />
+      <AnimatedMoney amount={amount} className="text-[15px] font-extrabold" compact />
     </Card>
   );
 }

@@ -1,7 +1,8 @@
 // ============================================================
-// BUDGETO v3 — Settings Store (zustand + persist)
-// Tema (mode, preset aksen), bahasa, periode gajian, keamanan,
-// notifikasi, kredensial cloud opsional. Tersimpan di localStorage.
+// BUDGETO v3.1 — Settings Store (zustand + persist)
+// Tema (mode, 5 schema warna, tone dingin↔hangat), bahasa, periode
+// gajian, keamanan, notifikasi (termasuk notifikasi setiap aksi),
+// kredensial cloud opsional. Tersimpan di localStorage.
 // ============================================================
 
 "use client";
@@ -19,9 +20,13 @@ export interface PinRecord {
 
 export interface Settings {
   onboarded: boolean;
-  // Tampilan (F03)
+  // Tampilan (F03) — 5 schema warna penuh + tone
   themeMode: "light" | "dark" | "system";
-  accent: string; // preset id: emerald | ocean | sunset | violet | rose | gold
+  themeSchema: string; // mocha | emerald | aqua | sunset | lavender
+  /** -100 (dingin) … 0 (netral) … +100 (hangat) */
+  tone: number;
+  /** legacy preset aksen (dipertahankan untuk kompatibilitas widget lama) */
+  accent: string;
   // Bahasa (F09)
   lang: "id" | "en";
   // Periode (F05)
@@ -36,6 +41,8 @@ export interface Settings {
   // Notifikasi
   notificationsEnabled: boolean;
   txNotif: boolean;
+  /** notifikasi sistem untuk setiap aksi: dompet, goal, budget, kategori, tagihan, backup */
+  actionNotif: boolean;
   budgetAlerts: boolean;
   dailyReminder: boolean;
   reminderTime: string;
@@ -57,6 +64,8 @@ interface SettingsState extends Settings {
 const DEFAULTS: Settings = {
   onboarded: false,
   themeMode: "system",
+  themeSchema: "emerald",
+  tone: 0,
   accent: "emerald",
   lang: "id",
   periodMode: "calendar",
@@ -68,6 +77,7 @@ const DEFAULTS: Settings = {
   privacyMode: false,
   notificationsEnabled: false,
   txNotif: true,
+  actionNotif: true,
   budgetAlerts: true,
   dailyReminder: true,
   reminderTime: "20:00",
@@ -88,11 +98,21 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: "budgeto-settings-v3",
-      version: 1,
+      version: 2,
       // v0 → v1: notifikasi default mati (user nyalakan sendiri, sekaligus memicu dialog izin)
+      // v1 → v2: preset aksen lama dipetakan ke schema tema baru + field baru
       migrate: (persisted, version) => {
         const st = (persisted ?? {}) as Partial<SettingsState>;
         if (version < 1) st.notificationsEnabled = false;
+        if (version < 2) {
+          const map: Record<string, string> = {
+            emerald: "emerald", ocean: "aqua", sunset: "sunset",
+            violet: "lavender", rose: "lavender", gold: "sunset",
+          };
+          st.themeSchema = map[st.accent ?? ""] ?? "emerald";
+          st.tone = 0;
+          st.actionNotif = true;
+        }
         return st as SettingsState;
       },
     }

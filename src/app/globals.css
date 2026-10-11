@@ -37,12 +37,11 @@
 }
 
 /* ============================================================
-   BUDGETO v3 — TOKEN TEMA (F03)
-   Semua warna lewat token. Komponen tidak boleh menulis warna langsung.
-   Token semantik (design.md §2): bg, surface, surface-2, border,
-   text, text-muted, accent, accent-contrast, income, expense,
-   status-ok/warn/bad. Dipetakan juga ke variabel shadcn agar semua
-   komponen ui/ mengikuti tema.
+   BUDGETO v3.1 — TOKEN TEMA (F03)
+   Sumber kebenaran warna = lib/themes.ts (5 schema × light/dark +
+   tone dingin↔hangat), diterapkan sebagai CSS variables inline pada
+   <html> oleh ThemeSync. Nilai di bawah ini hanya fallback paint
+   awal (emerald) sebelum hydration.
    ============================================================ */
 
 :root {
@@ -123,25 +122,20 @@
 }
 
 /* ============================================================
-   PRESET AKSEN (6) — hanya mengganti --accent-t & turunannya
+   PRESET AKSEN LAMA (legacy) — hanya fallback sebelum ThemeSync jalan.
    ============================================================ */
-[data-accent="emerald"]  { --accent-t: #059669; --accent-contrast-t: #ffffff; }
-[data-accent="emerald"].dark { --accent-t: #34d399; --accent-contrast-t: #06281c; }
-
-[data-accent="ocean"]    { --accent-t: #0e7490; --accent-contrast-t: #ffffff; }
-[data-accent="ocean"].dark   { --accent-t: #22d3ee; --accent-contrast-t: #08252b; }
-
-[data-accent="sunset"]   { --accent-t: #ea580c; --accent-contrast-t: #ffffff; }
-[data-accent="sunset"].dark  { --accent-t: #fb923c; --accent-contrast-t: #2b1505; }
-
-[data-accent="violet"]   { --accent-t: #7c3aed; --accent-contrast-t: #ffffff; }
-[data-accent="violet"].dark  { --accent-t: #a78bfa; --accent-contrast-t: #1d1240; }
-
-[data-accent="rose"]     { --accent-t: #e11d48; --accent-contrast-t: #ffffff; }
+[data-accent="emerald"], [data-schema="emerald"] { --accent-t: #059669; --accent-contrast-t: #ffffff; }
+[data-accent="emerald"].dark, [data-schema="emerald"].dark { --accent-t: #34d399; --accent-contrast-t: #06281c; }
+[data-accent="ocean"],    [data-schema="aqua"]     { --accent-t: #0e7490; --accent-contrast-t: #ffffff; }
+[data-accent="ocean"].dark,   [data-schema="aqua"].dark   { --accent-t: #22d3ee; --accent-contrast-t: #08252b; }
+[data-accent="sunset"],   [data-schema="sunset"]   { --accent-t: #ea580c; --accent-contrast-t: #ffffff; }
+[data-accent="sunset"].dark,  [data-schema="sunset"].dark  { --accent-t: #fb923c; --accent-contrast-t: #2b1505; }
+[data-accent="violet"],   [data-schema="lavender"] { --accent-t: #7c3aed; --accent-contrast-t: #ffffff; }
+[data-accent="violet"].dark,  [data-schema="lavender"].dark  { --accent-t: #a78bfa; --accent-contrast-t: #1d1240; }
+[data-accent="rose"]      { --accent-t: #e11d48; --accent-contrast-t: #ffffff; }
 [data-accent="rose"].dark    { --accent-t: #fb7185; --accent-contrast-t: #2b0a12; }
-
-[data-accent="gold"]     { --accent-t: #b45309; --accent-contrast-t: #ffffff; }
-[data-accent="gold"].dark    { --accent-t: #fbbf24; --accent-contrast-t: #2b1d04; }
+[data-accent="gold"],     [data-schema="mocha"]    { --accent-t: #b45309; --accent-contrast-t: #ffffff; }
+[data-accent="gold"].dark,    [data-schema="mocha"].dark    { --accent-t: #d8a679; --accent-contrast-t: #2b1a0d; }
 
 @layer base {
   * {
@@ -169,7 +163,7 @@
   .d5 { animation-delay: 0.15s; } .d6 { animation-delay: 0.18s; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .anim-rise, .anim-sheet { animation: none; }
+  .anim-rise, .anim-sheet, .fab-glow, .drift { animation: none; }
 }
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
@@ -185,8 +179,55 @@
 }
 .popnum { animation: popnum 0.18s ease-out; }
 
+/* Denyut halus untuk cahaya FAB */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+.fab-glow { animation: glow-pulse 2.6s ease-in-out infinite; }
+
+/* Lembut untuk latar kartu utama dashboard */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6px, 6px) scale(1.06); }
+}
+.drift { animation: drift 9s ease-in-out infinite; }
+
 /* Angka utama besar */
 .big-number {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+}
+
+/* ── Slider tone (dingin ↔ hangat) ── */
+.tone-slider {
+  background: linear-gradient(
+    to right,
+    #58a6ff 0%,
+    color-mix(in srgb, #58a6ff 40%, #ff9a56) 50%,
+    #ff9a56 100%
+  );
+  border-radius: 9999px;
+  height: 8px;
+  outline: none;
+}
+.tone-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--surface);
+  border: 3px solid var(--accent-t);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.tone-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--surface);
+  border: 3px solid var(--accent-t);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  cursor: pointer;
 }
