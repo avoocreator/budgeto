@@ -72,7 +72,7 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
 
         int textPrimary = readColor(colors, "text", dark ? "#FFFFFF" : "#0E1512");
         int textMuted   = readColor(colors, "textMuted", dark ? "#99FFFFFF" : "#990E1512");
-        int accent      = readColor(colors, "accent", accentColor(preset, dark));
+        int accent      = readColor(colors, "accent", String.format("#%06X", 0xFFFFFF & accentColor(preset, dark)));
         int warn        = readColor(colors, "warn", dark ? "#FBBF24" : "#B45309");
         int bad         = readColor(colors, "bad", dark ? "#FB7185" : "#E11D48");
         int incomeC     = readColor(colors, "income", dark ? "#34D399" : "#059669");
@@ -182,6 +182,15 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
             if (v != null && !v.isEmpty()) return Color.parseColor(v);
         } catch (Exception ignored) { /* format warna rusak → fallback */ }
         return Color.parseColor(fallbackHex);
+    }
+
+    /** Overload: fallback sudah berupa int (mis. hasil accentColor). */
+    private static int readColor(JSONObject colors, String key, int fallback) {
+        try {
+            String v = colors == null ? null : colors.optString(key, null);
+            if (v != null && !v.isEmpty()) return Color.parseColor(v);
+        } catch (Exception ignored) { /* format warna rusak → fallback */ }
+        return fallback;
     }
 
     private static int accentColor(String preset, boolean dark) {
