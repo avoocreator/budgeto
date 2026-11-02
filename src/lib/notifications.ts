@@ -1,13 +1,3 @@
-// ============================================================
-// BUDGETO v3.1 — Notifikasi (system via SW + in-app toast)
-// - Notifikasi saat transaksi dicatat/diubah/dihapus
-// - Notifikasi setiap aksi: dompet, goal, budget, kategori, tagihan,
-//   backup (notifyAction)
-// - Peringatan budget 80% / 100% (sekali per level per bulan/periode)
-// - Pengingat catat harian
-// - Pengingat tagihan H-1 (F06)
-// ============================================================
-
 "use client";
 
 import { Capacitor } from "@capacitor/core";
@@ -187,9 +177,7 @@ export async function notify(title: string, body: string, icon = "wallet", opts?
   } catch { /* notifikasi gagal — toast sudah muncul */ }
 }
 
-// ─── Notifikasi per-aksi (dompet, goal, budget, kategori, tagihan, backup) ──
-// Hanya notifikasi sistem di HP (tanpa toast in-app agar UI tidak bising);
-// UI sudah punya umpan balik sendiri saat aksi dilakukan.
+// Notifikasi per aksi sistem
 export async function notifyAction(title: string, body: string, icon = "wallet"): Promise<void> {
   const s = (await import("./settings")).useSettings.getState();
   if (!s.notificationsEnabled || !s.actionNotif) {
@@ -199,7 +187,7 @@ export async function notifyAction(title: string, body: string, icon = "wallet")
   await notify(title, body, icon, { toast: false });
 }
 
-// ─── Pengingat harian ────────────────────────────────────────
+// Pengingat harian
 const REMINDER_KEY = "budgeto-last-reminder";
 
 export function scheduleDailyReminder(time: string, enabled: boolean): void {
@@ -253,7 +241,7 @@ export async function fireDailyReminder(): Promise<void> {
   void notify("Jangan lupa catat keuangan 💰", "Ada pengeluaran hari ini yang belum dicatat di Budgeto?", "piggy-bank");
 }
 
-// ─── Diagnosa (tombol "Tes notifikasi" di Pengaturan) ────────
+// Diagnosa notifikasi
 async function runDiagnose(): Promise<string> {
   const out: string[] = [];
   let step = "mulai";

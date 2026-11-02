@@ -1,10 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Tagihan & Rutinitas (F06)
-// Aturan berulang (mingguan/bulanan): mode "catat otomatis" atau
-// "minta konfirmasi". Tagihan menunggu bisa dikonfirmasi, diubah
-// nominalnya, atau dilewati. Pengingat H-1 lewat notifikasi.
-// ============================================================
-
 "use client";
 
 import { useState } from "react";
@@ -39,7 +32,7 @@ export function BillsView({ onBack }: { onBack: () => void }) {
           <ArrowLeft size={17} />
         </button>
         <div>
-          <h1 className="text-lg font-extrabold tracking-tight">{lang === "id" ? "Tagihan & Rutinitas" : "Bills & Recurring"}</h1>
+          <h1 className="text-lg font-semibold tracking-tight">{lang === "id" ? "Tagihan & Rutinitas" : "Bills & Recurring"}</h1>
           <p className="text-[11px] leading-snug text-muted-foreground">{lang === "id" ? "Aturan berulang: tagihan otomatis atau minta konfirmasi" : "Recurring rules: auto-posted or confirmation first"}</p>
         </div>
       </div>
@@ -59,12 +52,12 @@ export function BillsView({ onBack }: { onBack: () => void }) {
                       {lang === "id" ? "Jatuh tempo" : "Due"} {bill.dueDate.split("-").reverse().join("/")}
                     </p>
                   </div>
-                  <MoneyText amount={bill.amount} className="text-[13px] font-extrabold" />
+                  <MoneyText amount={bill.amount} className="text-[13px] font-semibold" />
                 </div>
                 <div className="mt-2.5 flex gap-1.5">
                   <button
                     onClick={() => void confirmPendingBill(rule.id, bill.id)}
-                    className="flex-1 rounded-xl bg-primary py-2 text-[11px] font-extrabold text-primary-foreground"
+                    className="flex-1 rounded-xl bg-primary py-2 text-[11px] font-semibold text-primary-foreground"
                   >
                     {lang === "id" ? "Konfirmasi" : "Confirm"}
                   </button>
@@ -108,7 +101,7 @@ export function BillsView({ onBack }: { onBack: () => void }) {
                     </p>
                   </div>
                   <div className="text-right">
-                    <MoneyText amount={r.amount} className={cn("text-[13px] font-extrabold", r.type === "income" ? "text-income" : "text-expense")} />
+                    <MoneyText amount={r.amount} className={cn("text-[13px] font-semibold", r.type === "income" ? "text-income" : "text-expense")} />
                     <p className="text-[9px] text-muted-foreground">→ {r.nextDate.split("-").reverse().join("/")}</p>
                   </div>
                 </div>
@@ -183,7 +176,7 @@ function RuleForm({ edit, lang, cats, wallets, defaultWalletId, onClose }: {
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <button className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Tutup" />
       <div className="anim-sheet thin-scroll relative mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-[24px] border bg-card p-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-        <h3 className="pb-3 text-sm font-extrabold">{edit ? (lang === "id" ? "Ubah aturan" : "Edit rule") : (lang === "id" ? "Tambah aturan" : "Add rule")}</h3>
+        <h3 className="pb-3 text-sm font-semibold">{edit ? (lang === "id" ? "Ubah aturan" : "Edit rule") : (lang === "id" ? "Tambah aturan" : "Add rule")}</h3>
 
         <label className="block pb-2.5">
           <span className="pb-1 block text-[11px] font-bold text-muted-foreground">{lang === "id" ? "Nama tagihan" : "Bill name"}</span>
@@ -298,7 +291,7 @@ function RuleForm({ edit, lang, cats, wallets, defaultWalletId, onClose }: {
                 onClose();
               } finally { setSaving(false); }
             }}
-            className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+            className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
           >
             {saving ? "…" : (lang === "id" ? "Simpan" : "Save")}
           </button>

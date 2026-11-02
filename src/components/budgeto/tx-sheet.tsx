@@ -1,11 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Alur catat cepat (F02)
-// Bottom sheet: nominal dulu (papan angka besar), kategori disarankan
-// sudah terpilih (chip paling kiri), lalu simpan → maksimal 3 ketukan.
-// Baris opsional (catatan, dompet, tanggal) tersembunyi sampai dibuka.
-// Guard simpan ganda ada di repo.saveTransaction.
-// ============================================================
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -138,7 +130,7 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Catat transaksi">
         <motion.button
           aria-label="Tutup"
-          className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+          className="absolute inset-0 bg-black/45"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -187,7 +179,7 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
         <div className="px-4 pt-3 text-center">
           <div className="flex items-baseline justify-center gap-1.5">
             <span className="text-lg font-semibold text-muted-foreground">Rp</span>
-            <span key={amountStr} className="popnum big-number text-[40px] font-extrabold leading-tight" style={{ color: amount > 0 ? undefined : "var(--text-muted)" }}>
+            <span key={amountStr} className="popnum big-number text-[40px] font-semibold leading-tight" style={{ color: amount > 0 ? undefined : "var(--text-muted)" }}>
               {amountStr === "" ? "0" : new Intl.NumberFormat("id-ID").format(amount)}
             </span>
           </div>
@@ -323,8 +315,8 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
             disabled={!canSave || saving}
             whileTap={canSave ? { scale: 0.97 } : undefined}
             className={cn(
-              "flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-extrabold transition-all",
-              canSave ? "bg-primary text-primary-foreground shadow-md" : "cursor-not-allowed bg-surface2 text-muted-foreground"
+              "flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition-all",
+              canSave ? "bg-primary text-primary-foreground" : "cursor-not-allowed bg-surface2 text-muted-foreground"
             )}
           >
             <Check size={17} strokeWidth={2.6} />

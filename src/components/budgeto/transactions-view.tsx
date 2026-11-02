@@ -1,11 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Daftar transaksi (F08)
-// Dikelompokkan per hari, pencarian real-time (catatan/kategori/dompet),
-// filter (jenis, kategori, dompet, rentang tanggal, rentang nominal),
-// total hasil. Geser ke kiri untuk hapus → snackbar undo (soft delete,
-// restore dengan id yang sama).
-// ============================================================
-
 "use client";
 
 import { useMemo, useRef, useState } from "react";

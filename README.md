@@ -23,7 +23,7 @@ Free to use, ad-free, and designed to keep your finances accessible even without
 - **App Lock** — Protect access to the application using a PIN stored as a PBKDF2-derived hash rather than plain text.
 - **Bilingual Interface** — Switch between Indonesian and English directly from the settings.
 - **5 Color Schemes + Tone Control** — Choose between Mocha, Emerald, Aqua, Sunset, and Lavender — each with light & dark mode — plus a cool ↔ warm tone slider to fine-tune the atmosphere.
-- **Themed Home-Screen Widget** — The Android widget follows the app theme precisely (colors, accent, and status tones) with a soft, modern design.
+- **Themed Home-Screen Widget** — The Android widget puts your total balance front and center, with a one-line income/expense summary and two quick-add buttons, following the app theme.
 - **Offline-First Experience** — Access locally stored financial data without an internet connection using IndexedDB.
 - **Optional Cloud Sync** — Back up and synchronize financial data across devices through Supabase.
 - **Progressive Web App (PWA)** — Install Budgeto from a supported browser for an app-like experience.

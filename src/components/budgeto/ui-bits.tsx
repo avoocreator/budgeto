@@ -1,9 +1,3 @@
-// ============================================================
-// BUDGETO v3.1 — Komponen kecil bersama
-// MoneyText (mode privasi F07), AnimatedMoney (count-up), Segmented
-// dengan indikator meluncur (framer-motion), EmptyState, Card, dsb.
-// ============================================================
-
 "use client";
 
 import { useEffect, useId } from "react";
@@ -11,8 +5,9 @@ import { motion, animate, useMotionValue, useTransform } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
-import { formatMoney } from "@/lib/format";
-import { Eye, EyeOff } from "lucide-react";
+import { formatMoney, formatNumber, CURRENCY_SYMBOL } from "@/lib/format";
+import { localeOf } from "@/lib/i18n";
+import { Eye, EyeOff, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Icon } from "./icons";
 
 /** Tampilkan nominal; otomatis •••• bila mode privasi aktif (F07). */
@@ -60,6 +55,50 @@ export function AnimatedMoney({
   return <motion.span className={cn("big-number", className)}>{text}</motion.span>;
 }
 
+/**
+ * Angka saldo utama: prefiks "Rp" lebih kecil & redup, angka besar tabular.
+ * Count-up halus hanya saat nilai BERUBAH (render pertama langsung tampil).
+ */
+export function MoneyHero({ amount, className, size = 40 }: { amount: number; className?: string; size?: number }) {
+  const lang = useLang((s) => s.lang);
+  const privacy = useSettings((s) => s.privacyMode);
+  const mv = useMotionValue(amount);
+  const text = useTransform(mv, (v) => formatNumber(Math.abs(Math.round(v)), lang));
+
+  useEffect(() => {
+    if (privacy) { mv.set(amount); return; }
+    const controls = animate(mv, amount, { duration: 0.5, ease: [0.16, 1, 0.3, 1] });
+    return () => controls.stop();
+  }, [amount, privacy, mv]);
+
+  const prefix = (amount < 0 ? "−" : "") + CURRENCY_SYMBOL;
+  return (
+    <div className={cn("flex items-baseline gap-1.5", className)} aria-label={privacy ? undefined : formatMoney(amount, lang)}>
+      <span className="font-medium text-muted-foreground" style={{ fontSize: Math.round(size * 0.5) }}>{prefix}</span>
+      {privacy ? (
+        <span className="big-number font-semibold leading-none tracking-[0.12em]" style={{ fontSize: size }}>••••••</span>
+      ) : (
+        <motion.span className="big-number font-semibold leading-none tracking-[-0.035em]" style={{ fontSize: size }}>{text}</motion.span>
+      )}
+    </div>
+  );
+}
+
+/** Chip perubahan persen. goodWhenUp=false untuk pengeluaran (naik = buruk). */
+export function Delta({ value, goodWhenUp = true, className }: { value: number; goodWhenUp?: boolean; className?: string }) {
+  const lang = useLang((s) => s.lang);
+  const up = value >= 0;
+  const good = up === goodWhenUp;
+  const Arrow = up ? ArrowUpRight : ArrowDownRight;
+  const label = new Intl.NumberFormat(localeOf(lang), { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(Math.abs(value));
+  return (
+    <span className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold", good ? "bg-ok/10 text-ok" : "bg-bad/10 text-bad", className)}>
+      <Arrow size={11} strokeWidth={2.4} />
+      {label}%
+    </span>
+  );
+}
+
 /** Toggle cepat sembunyikan angka (alur I). */
 export function PrivacyToggle({ className }: { className?: string }) {
   const privacy = useSettings((s) => s.privacyMode);
@@ -68,7 +107,7 @@ export function PrivacyToggle({ className }: { className?: string }) {
     <button
       onClick={() => set("privacyMode", !privacy)}
       aria-label={privacy ? "Tampilkan angka" : "Sembunyikan angka"}
-      className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-surface2 text-muted-foreground ring-1 ring-border/60 transition-colors hover:text-foreground active:scale-90", className)}
+      className={cn("flex h-9 w-9 items-center justify-center rounded-full border bg-card text-muted-foreground transition-colors hover:text-foreground active:bg-surface2", className)}
     >
       {privacy ? <EyeOff size={16} /> : <Eye size={16} />}
     </button>
@@ -78,10 +117,17 @@ export function PrivacyToggle({ className }: { className?: string }) {
 export function IconBubble({ name, color, size = 36, className }: { name: string; color: string; size?: number; className?: string }) {
   return (
     <span
-      className={cn("flex shrink-0 items-center justify-center rounded-full", className)}
-      style={{ width: size, height: size, backgroundColor: `${color}22`, color }}
+      className={cn("flex shrink-0 items-center justify-center", className)}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.3),
+        // color-mix berlaku untuk hex maupun var(--token); `${color}22` rusak untuk var()
+        backgroundColor: `color-mix(in srgb, ${color} 13%, transparent)`,
+        color,
+      }}
     >
-      <Icon name={name} size={Math.round(size * 0.5)} strokeWidth={2.1} />
+      <Icon name={name} size={Math.round(size * 0.5)} strokeWidth={2} />
     </span>
   );
 }
@@ -89,7 +135,7 @@ export function IconBubble({ name, color, size = 36, className }: { name: string
 export function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between px-1 pb-1.5">
-      <h2 className="text-[13px] font-bold text-muted-foreground">{children}</h2>
+      <h2 className="text-[13px] font-semibold text-foreground">{children}</h2>
       {action}
     </div>
   );
@@ -97,9 +143,9 @@ export function SectionTitle({ children, action }: { children: React.ReactNode; 
 
 export function EmptyState({ icon, title, desc, action }: { icon?: React.ReactNode; title: string; desc?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card/50 px-6 py-8 text-center">
-      {icon && <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface2 text-muted-foreground">{icon}</div>}
-      <p className="text-sm font-bold">{title}</p>
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card px-6 py-8 text-center">
+      {icon && <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface2 text-muted-foreground">{icon}</div>}
+      <p className="text-sm font-semibold">{title}</p>
       {desc && <p className="max-w-[240px] text-xs leading-relaxed text-muted-foreground">{desc}</p>}
       {action}
     </div>
@@ -107,7 +153,7 @@ export function EmptyState({ icon, title, desc, action }: { icon?: React.ReactNo
 }
 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl border bg-card shadow-sm", className)}>{children}</div>;
+  return <div className={cn("rounded-[20px] border bg-card", className)}>{children}</div>;
 }
 
 /** Segmented control dengan pill aktif yang MELUNCUR halus antar opsi. */
@@ -131,7 +177,7 @@ export function Segmented<T extends string>({
             {active && (
               <motion.span
                 layoutId={`seg-${groupId}`}
-                className="absolute inset-0 rounded-lg bg-card shadow-sm ring-1 ring-border/50"
+                className="absolute inset-0 rounded-lg border bg-card"
                 transition={{ type: "spring", stiffness: 520, damping: 42, mass: 0.7 }}
               />
             )}
@@ -150,7 +196,7 @@ export function ProgressBar({ percent, className }: { percent: number; className
   const p = Math.max(0, Math.min(100, percent));
   const color = percent >= 100 ? "bg-bad" : percent >= 80 ? "bg-warn" : "bg-primary";
   return (
-    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-surface2", className)}>
+    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-surface2", className)}>
       <motion.div
         className={cn("h-full rounded-full", color)}
         initial={{ width: 0 }}

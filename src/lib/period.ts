@@ -1,12 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Periode sesuai tanggal gajian (F05)
-// - mode "calendar": 1 s/d akhir bulan (perilaku lama)
-// - mode "payday": mulai tanggal X (1–31) sampai sehari sebelum X bulan berikut
-// - Tanggal 29–31 aman: jika bulan lebih pendek, jatuh ke hari terakhir bulan
-//   (contoh gajian 31 → periode Feb 28/29 s/d Mar 30).
-// - Sisa hari minimal 1 agar tidak pernah membagi dengan nol.
-// ============================================================
-
 import type { Period, PeriodMode } from "./types";
 import { toISO, todayStr, daysInMonth } from "./format";
 

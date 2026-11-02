@@ -1,14 +1,3 @@
-// ============================================================
-// BUDGETO v3.1 — THEME ENGINE
-// 5 schema warna lengkap (Mocha, Emerald, Aqua, Sunset, Lavender),
-// masing-masing punya palet terang & gelap, ditambah pengatur
-// tone (dingin ↔ hangat) yang mencampur tint halus ke permukaan.
-//
-// Satu sumber kebenaran: palet didefinisikan di sini (JS), lalu
-// diterapkan sebagai CSS variables pada <html> oleh ThemeSync
-// (boot-sync.tsx) dan dikirim ke widget Android lewat snapshot.
-// ============================================================
-
 export interface ThemePalette {
   bg: string;
   surface: string;
@@ -35,7 +24,7 @@ export interface ThemeSchema {
   dark: ThemePalette;
 }
 
-// ─── 5 SCHEMA ────────────────────────────────────────────────
+// Tema schema
 export const THEME_SCHEMAS: ThemeSchema[] = [
   {
     id: "mocha",
@@ -60,17 +49,18 @@ export const THEME_SCHEMAS: ThemeSchema[] = [
     label: "Emerald",
     emoji: "🌿",
     swatch: "#34D399",
+    // v4: netral bersih + hijau lebih dalam (kontras teks putih ≥ 4.5:1)
     light: {
-      bg: "#f6f7f6", surface: "#ffffff", surface2: "#f0f2f1", border: "#e4e8e6",
-      text: "#17201c", textMuted: "#6b7570",
-      income: "#059669", expense: "#e11d48", warn: "#d97706", bad: "#e11d48",
-      accent: "#059669", accentContrast: "#ffffff",
+      bg: "#f3f5f4", surface: "#ffffff", surface2: "#f3f5f4", border: "#e8ebe9",
+      text: "#101613", textMuted: "#69736e",
+      income: "#12814f", expense: "#d92d43", warn: "#b86e00", bad: "#d92d43",
+      accent: "#12814f", accentContrast: "#ffffff",
     },
     dark: {
-      bg: "#0d1210", surface: "#141b18", surface2: "#1c2420", border: "#253029",
-      text: "#e8edea", textMuted: "#8d9993",
-      income: "#34d399", expense: "#fb7185", warn: "#fbbf24", bad: "#fb7185",
-      accent: "#34d399", accentContrast: "#06281c",
+      bg: "#0b100e", surface: "#121815", surface2: "#1a211d", border: "#232c27",
+      text: "#ecf1ee", textMuted: "#8a958f",
+      income: "#3ecf8e", expense: "#f27a89", warn: "#f0b429", bad: "#f27a89",
+      accent: "#3ecf8e", accentContrast: "#04241a",
     },
   },
   {
@@ -138,7 +128,7 @@ export function getSchema(id: string): ThemeSchema {
   return THEME_SCHEMAS.find((s) => s.id === id) ?? THEME_SCHEMAS[1];
 }
 
-// ─── UTIL WARNA ──────────────────────────────────────────────
+// Util warna
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
@@ -172,7 +162,7 @@ export function alphaHex(hex: string, alpha: number): string {
   return `#${a}${h}`;
 }
 
-// ─── TONE (dingin ↔ hangat) ──────────────────────────────────
+// Penyesuaian tone
 const WARM_TINT = "#ff9a56"; // oranye hangat
 const COOL_TINT = "#58a6ff"; // biru sejuk
 

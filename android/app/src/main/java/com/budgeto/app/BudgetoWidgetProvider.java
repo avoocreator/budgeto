@@ -7,9 +7,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
-import android.view.View;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.widget.RemoteViews;
 
 import org.json.JSONObject;
@@ -20,15 +24,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/**
- * Budgeto Widget 4x2 — 100% lokal.
- * Data datang dari snapshot yang didorong app lewat WidgetBridgePlugin
- * (SharedPreferences). Widget tidak pernah memanggil jaringan.
- *
- * v2: warna & style mengikuti tema aplikasi — snapshot membawa
- * theme.schemaId (mocha|emerald|aqua|sunset|lavender) dan theme.colors
- * (palet final hasil schema + mode + tone dari lib/themes.ts).
- */
+/** Widget 4x2 Budgeto — total saldo, ringkasan periode, dan aksi cepat. */
 public class BudgetoWidgetProvider extends AppWidgetProvider {
 
     static final String PREFS = "budgeto_widget";
@@ -53,7 +49,7 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
     private static RemoteViews buildViews(Context context) {
         RemoteViews v = new RemoteViews(context.getPackageName(), R.layout.widget_budgeto);
 
-        // ── Baca snapshot ──
+        // Baca snapshot
         JSONObject snap = null;
         try {
             String raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SNAPSHOT, null);
@@ -64,40 +60,47 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
         boolean id = snap == null || !"en".equals(snap.optString("locale", "id"));
         String preset = snap == null ? "emerald" : optNested(snap, "theme", "preset", "emerald");
         String schemaId = snap == null ? "" : optNested(snap, "theme", "schemaId", "");
+        if (schemaId.isEmpty()) schemaId = "emerald";
+        String mode = dark ? "dark" : "light";
 
-        // ── Warna per tema (v2 dari theme.colors, fallback ke legacy) ──
+        // Warna per tema
         JSONObject colors = null;
         JSONObject theme = snap == null ? null : snap.optJSONObject("theme");
         if (theme != null) colors = theme.optJSONObject("colors");
 
-        int textPrimary = readColor(colors, "text", dark ? "#FFFFFF" : "#0E1512");
-        int textMuted   = readColor(colors, "textMuted", dark ? "#99FFFFFF" : "#990E1512");
-        int accent      = readColor(colors, "accent", String.format("#%06X", 0xFFFFFF & accentColor(preset, dark)));
-        int warn        = readColor(colors, "warn", dark ? "#FBBF24" : "#B45309");
-        int bad         = readColor(colors, "bad", dark ? "#FB7185" : "#E11D48");
-        int incomeC     = readColor(colors, "income", dark ? "#34D399" : "#059669");
-        int expenseC    = readColor(colors, "expense", dark ? "#FB7185" : "#E11D48");
+        int textPrimary = readColor(colors, "text", dark ? "#ECF1EE" : "#101613");
+        int textMuted   = readColor(colors, "textMuted", dark ? "#8A958F" : "#69736E");
+        int accent      = readColor(colors, "accent", accentColor(preset, dark));
+        int accentOn    = readColor(colors, "accentContrast", dark ? "#04241A" : "#FFFFFF");
+        int incomeC     = readColor(colors, "income", dark ? "#3ECF8E" : "#12814F");
+        int expenseC    = readColor(colors, "expense", dark ? "#F27A89" : "#D92D43");
+        int bad         = readColor(colors, "bad", dark ? "#F27A89" : "#D92D43");
 
-        // Background gradient: pilih drawable sesuai schema + mode (fallback emerald)
-        int bgRes = context.getResources().getIdentifier(
-                "widget_bg_" + (schemaId.isEmpty() ? "emerald" : schemaId) + "_" + (dark ? "dark" : "light"),
-                "drawable", context.getPackageName());
-        if (bgRes == 0) bgRes = dark ? R.drawable.widget_bg_emerald_dark : R.drawable.widget_bg_emerald_light;
-        v.setInt(R.id.widget_root, "setBackgroundResource", bgRes);
+        // Background & tombol: drawable per schema + mode (fallback emerald)
+        v.setInt(R.id.widget_root, "setBackgroundResource",
+                drawableFor(context, "widget_bg_", schemaId, mode, dark ? R.drawable.widget_bg_emerald_dark : R.drawable.widget_bg_emerald_light));
+        v.setInt(R.id.widget_btn_expense, "setBackgroundResource",
+                drawableFor(context, "widget_btn_primary_", schemaId, mode, dark ? R.drawable.widget_btn_primary_emerald_dark : R.drawable.widget_btn_primary_emerald_light));
+        v.setInt(R.id.widget_btn_income, "setBackgroundResource",
+                drawableFor(context, "widget_btn_secondary_", schemaId, mode, dark ? R.drawable.widget_btn_secondary_emerald_dark : R.drawable.widget_btn_secondary_emerald_light));
 
-        v.setTextColor(R.id.widget_brand, accent);
-        v.setTextColor(R.id.widget_updated, textMuted);
+        v.setInt(R.id.widget_dot, "setColorFilter", accent);
         v.setTextColor(R.id.widget_label, textMuted);
-        v.setTextColor(R.id.widget_meta_left, textMuted);
-        v.setTextColor(R.id.widget_meta_right, textMuted);
-        v.setTextColor(R.id.widget_btn_expense, expenseC);
-        v.setTextColor(R.id.widget_btn_income, incomeC);
+        v.setTextColor(R.id.widget_updated, textMuted);
+        v.setTextColor(R.id.widget_meta_in, textMuted);
+        v.setTextColor(R.id.widget_meta_out, textMuted);
+        v.setTextColor(R.id.widget_btn_expense, accentOn);
+        v.setTextColor(R.id.widget_btn_income, textPrimary);
 
-        // ── Isi ──
-        String label, amount, metaLeft = "", metaRight = "", updated = "";
+        // Isi data widget
+        String label = id ? "Total saldo" : "Total balance";
+        String amount;
+        String updated = "";
         int amountColor = textPrimary;
-        int barPercent = 0;
-        String barKind = "none"; // none | ok | warn | bad
+        CharSequence metaIn;
+        CharSequence metaOut;
+        String inLabel = id ? "Masuk" : "In";
+        String outLabel = id ? "Keluar" : "Out";
 
         JSONObject labels = snap == null ? null : snap.optJSONObject("labels");
         String btnExpense = labels != null ? labels.optString("addExpense", id ? "− Keluar" : "− Expense") : (id ? "− Keluar" : "− Expense");
@@ -106,52 +109,36 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
         v.setTextViewText(R.id.widget_btn_income, btnIncome);
 
         if (snap == null) {
-            label = id ? "Belum ada data" : "No data yet";
             amount = id ? "Buka Budgeto" : "Open Budgeto";
+            metaIn = metaText(inLabel, "—", incomeC);
+            metaOut = metaText(outLabel, "—", expenseC);
         } else {
             boolean privacy = snap.optBoolean("privacy", false);
-            JSONObject daily = snap.optJSONObject("daily");
-            JSONObject budget = snap.optJSONObject("budget");
             double balance = snap.optDouble("balance", 0);
-            String status = daily == null ? "none" : daily.optString("status", "none");
-            String balLabel = labels != null ? labels.optString("balance", id ? "Saldo" : "Balance") : (id ? "Saldo" : "Balance");
+            JSONObject period = snap.optJSONObject("period");
 
+            label = labels != null ? labels.optString("balance", label) : label;
+            amount = money(balance, privacy);
+            if (!privacy && balance < 0) amountColor = bad;
             updated = formatUpdated(snap.optString("updatedAt", ""));
 
-            if ("none".equals(status) || daily == null) {
-                // Budget belum diatur → tampilkan saldo sebagai utama
-                label = balLabel;
-                amount = money(balance, privacy);
-                metaLeft = id ? "Atur budget untuk lihat sisa harian" : "Set a budget to see daily allowance";
+            if (period != null) {
+                metaIn = metaText(inLabel, moneyCompact(period.optDouble("income", 0), privacy, id), incomeC);
+                metaOut = metaText(outLabel, moneyCompact(period.optDouble("expense", 0), privacy, id), expenseC);
             } else {
-                label = labels != null ? labels.optString("today", id ? "Sisa hari ini" : "Today's allowance") : (id ? "Sisa hari ini" : "Today's allowance");
-                amount = money(daily.optDouble("amount", 0), privacy);
-                barPercent = Math.max(0, Math.min(100, budget == null ? 0 : budget.optInt("usedPercent", 0)));
-                barKind = status;
-                if ("warn".equals(status)) amountColor = warn;
-                if ("bad".equals(status)) amountColor = bad;
-                metaLeft = barPercent + "% " + (id ? "budget terpakai" : "budget used");
-                metaRight = balLabel + " " + money(balance, privacy);
+                metaIn = metaText(inLabel, "—", incomeC);
+                metaOut = metaText(outLabel, "—", expenseC);
             }
         }
 
         v.setTextViewText(R.id.widget_label, label);
         v.setTextViewText(R.id.widget_amount, amount);
         v.setTextColor(R.id.widget_amount, amountColor);
-        v.setTextViewText(R.id.widget_meta_left, metaLeft);
-        v.setTextViewText(R.id.widget_meta_right, metaRight);
+        v.setTextViewText(R.id.widget_meta_in, metaIn);
+        v.setTextViewText(R.id.widget_meta_out, metaOut);
         v.setTextViewText(R.id.widget_updated, updated);
 
-        // Satu bar aktif sesuai status (warna bar tidak bisa diubah dinamis di RemoteViews)
-        v.setViewVisibility(R.id.widget_bar_ok, "ok".equals(barKind) ? View.VISIBLE : View.GONE);
-        v.setViewVisibility(R.id.widget_bar_warn, "warn".equals(barKind) ? View.VISIBLE : View.GONE);
-        v.setViewVisibility(R.id.widget_bar_bad, "bad".equals(barKind) ? View.VISIBLE : View.GONE);
-        v.setViewVisibility(R.id.widget_bar_space, "none".equals(barKind) ? View.VISIBLE : View.GONE);
-        if ("ok".equals(barKind)) v.setProgressBar(R.id.widget_bar_ok, 100, barPercent, false);
-        if ("warn".equals(barKind)) v.setProgressBar(R.id.widget_bar_warn, 100, barPercent, false);
-        if ("bad".equals(barKind)) v.setProgressBar(R.id.widget_bar_bad, 100, barPercent, false);
-
-        // ── Klik ──
+        // Aksi klik
         int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
 
         Intent openApp = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
@@ -168,6 +155,23 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
         v.setOnClickPendingIntent(R.id.widget_btn_income, PendingIntent.getActivity(context, 12, income, flags));
 
         return v;
+    }
+
+    /** Cari drawable "<prefix><schema>_<mode>"; pakai fallback bila tidak ada. */
+    private static int drawableFor(Context context, String prefix, String schemaId, String mode, int fallback) {
+        int res = context.getResources().getIdentifier(prefix + schemaId + "_" + mode, "drawable", context.getPackageName());
+        return res == 0 ? fallback : res;
+    }
+
+    /** "Masuk  Rp8,5jt" — label ikut warna TextView, nilai ditebalkan & diwarnai. */
+    private static CharSequence metaText(String label, String value, int valueColor) {
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        sb.append(label).append("  ");
+        int start = sb.length();
+        sb.append(value);
+        sb.setSpan(new ForegroundColorSpan(valueColor), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sb.setSpan(new StyleSpan(Typeface.BOLD), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return sb;
     }
 
     private static String optNested(JSONObject o, String key, String sub, String def) {
@@ -203,7 +207,7 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
             case "violet": return Color.parseColor(dark ? "#A78BFA" : "#7C3AED");
             case "rose":   return Color.parseColor(dark ? "#FB7185" : "#E11D48");
             case "gold":   return Color.parseColor(dark ? "#FBBF24" : "#B45309");
-            default:       return Color.parseColor(dark ? "#34D399" : "#059669");
+            default:       return Color.parseColor(dark ? "#3ECF8E" : "#12814F");
         }
     }
 
@@ -212,6 +216,24 @@ public class BudgetoWidgetProvider extends AppWidgetProvider {
         NumberFormat nf = NumberFormat.getNumberInstance(new Locale("id", "ID"));
         nf.setMaximumFractionDigits(0);
         return (value < 0 ? "-" : "") + "Rp" + nf.format(Math.abs(value));
+    }
+
+    /** Versi ringkas untuk baris meta: Rp850rb, Rp8,5jt, Rp1,2M (id) / Rp850K, Rp8.5M, Rp1.2B (en). */
+    private static String moneyCompact(double value, boolean privacy, boolean id) {
+        if (privacy) return "••••";
+        double abs = Math.abs(value);
+        String sign = value < 0 ? "-" : "";
+        if (abs >= 1_000_000_000d) return sign + "Rp" + oneDecimal(abs / 1_000_000_000d, id) + (id ? "M" : "B");
+        if (abs >= 1_000_000d) return sign + "Rp" + oneDecimal(abs / 1_000_000d, id) + (id ? "jt" : "M");
+        if (abs >= 1_000d) return sign + "Rp" + oneDecimal(abs / 1_000d, id) + (id ? "rb" : "K");
+        return sign + "Rp" + Math.round(abs);
+    }
+
+    private static String oneDecimal(double n, boolean id) {
+        NumberFormat nf = NumberFormat.getNumberInstance(id ? new Locale("id", "ID") : Locale.US);
+        nf.setMaximumFractionDigits(1);
+        nf.setMinimumFractionDigits(0);
+        return nf.format(n);
     }
 
     /** ISO UTC dari JS (toISOString) → "HH:mm" lokal, atau "dd/MM HH:mm" bila bukan hari ini. */

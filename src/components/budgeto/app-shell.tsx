@@ -1,22 +1,13 @@
-// ============================================================
-// BUDGETO v3 — App Shell: navigasi bawah, FAB, gate, deep link
-// - Gate: onboarding → lock (F07) → app
-// - Deep link widget/shortcut (F04): /?action=add&type=... dan
-//   budgeto://add?type=... (Capacitor appUrlOpen via runtime check)
-// - Snapshot widget diperbarui saat app dibuka, data berubah, dan
-//   pergantian hari (interval tengah malam) (F04)
-// ============================================================
-
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
-import { Home, ArrowLeftRight, PieChart, LayoutGrid, Plus, Sun, Moon, Loader2, CloudOff, Cloud, Check, Download, PiggyBank, Target, Wallet as WalletIcon, Tags, Settings2, BarChart3, Repeat } from "lucide-react";
+import { Home, ArrowLeftRight, PieChart, LayoutGrid, Plus, Sun, Moon, Loader2, CloudOff, Cloud, Check, Download, PiggyBank, Target, Wallet as WalletIcon, Tags, Settings2, BarChart3, Repeat, CalendarDays } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, seedIfEmpty } from "@/lib/db";
 import { useSettings } from "@/lib/settings";
-import { useLang } from "@/lib/i18n";
+import { useLang, localeOf } from "@/lib/i18n";
 import { initSync, getSyncState, onSyncChange } from "@/lib/sync";
 import { ensureSw, scheduleDailyReminder, requestPermission, notify } from "@/lib/notifications";
 import { processDueRules, rulesDueWithin } from "@/lib/recurring";
@@ -35,6 +26,7 @@ import type { View } from "./types";
 import type { Transaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PrivacyToggle } from "./ui-bits";
 import { toast } from "sonner";
 
 type TabKey = "dashboard" | "transactions" | "reports" | "menu";
@@ -69,7 +61,7 @@ export function AppShell() {
   const rules = useLiveQuery(() => db.recurringRules.toArray(), []);
   const wallets = useLiveQuery(() => db.wallets.filter((w) => !w.deleted).toArray(), []);
 
-  // ── Init sekali: seed, SW, sync, lock, deep link, widget ──
+  // Inisialisasi awal
   useEffect(() => {
     void seedIfEmpty();
     void ensureSw();
@@ -83,9 +75,7 @@ export function AppShell() {
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
 
-    // ── Deep link PWA: /?action=add&type=expense|income ──
-    // (setState sengaja dipanggil sekali setelah mount untuk menangkap
-    //  deep link widget/shortcut — aman dan tidak bisa di-lazy-init.)
+    // Deep link PWA
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "add") {
       const t = params.get("type");
@@ -101,7 +91,7 @@ export function AppShell() {
       window.history.replaceState({}, "", "/");
     }
 
-    // ── Deep link APK: budgeto://add?type=... (plugin App tersedia saat runtime di Capacitor) ──
+    // Deep link APK
     const cap = (window as unknown as { Capacitor?: { Plugins?: { App?: { addListener: (ev: string, cb: (d: { url: string }) => void) => void } } } }).Capacitor;
     const appPlugin = cap?.Plugins?.App;
     if (appPlugin?.addListener) {
@@ -125,7 +115,7 @@ export function AppShell() {
     };
   }, []);
 
-  // ── Proses tagihan jatuh tempo + pengingat H-1 + snapshot saat app dibuka ──
+  // Cek tagihan jatuh tempo & update snapshot
   useEffect(() => {
     if (!hydrated || !onboarded) return;
     (async () => {
@@ -147,7 +137,7 @@ export function AppShell() {
     })();
   }, [hydrated, onboarded]);
 
-  // ── Pembaruan widget saat pergantian hari (interval menit; murah) ──
+  // Pembaruan widget harian
   useEffect(() => {
     if (!hydrated || !onboarded) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -208,9 +198,9 @@ export function AppShell() {
     );
   }
 
-  // ── GATE 1: onboarding ──
+  // Gate 1: onboarding
   if (!onboarded) return <Onboarding />;
-  // ── GATE 2: kunci app (F07) — isi app tidak dirender ──
+  // Gate 2: kunci layar
   if (lockEnabled && locked) return <LockScreen />;
 
   const navItems: { key: TabKey; label: string; icon: typeof Home }[] = [
@@ -222,84 +212,132 @@ export function AppShell() {
 
   const viewKey = subView ?? tab;
   const walletCount = wallets?.length ?? 0;
+  const current: View = subView ?? tab;
+  const isDash = !subView && tab === "dashboard";
+  const dateLabel = new Intl.DateTimeFormat(localeOf(lang), { weekday: "short", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    useSettings.getState().set("themeMode", next);
+  };
+  const installApp = installEvent ? () => { void installEvent.prompt(); setInstallEvent(null); } : null;
 
   return (
-    <div className="relative mx-auto flex h-dvh max-w-md flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+14px)]">
-        <div className="anim-rise flex items-center gap-2.5">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-[13px] bg-primary text-[15px] font-black text-primary-foreground shadow-md">
-            B
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-warn ring-2 ring-background" />
+    <div className="mx-auto flex h-dvh max-w-md flex-col lg:max-w-none lg:flex-row">
+      {/* Sidebar — hanya desktop */}
+      <Sidebar current={current} go={go} id={id} sync={syncInfo} />
+
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        {/* Header HP */}
+        <header className="flex items-center justify-between px-5 pb-2 pt-[calc(env(safe-area-inset-top,0px)+14px)] lg:hidden">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-primary text-primary-foreground">
+              <WalletIcon size={18} strokeWidth={2.2} />
+            </div>
+            <div>
+              <h1 className="text-[16px] font-semibold leading-none tracking-tight">Budgeto</h1>
+              <SyncBadge state={syncInfo.state} message={syncInfo.message} id={id} />
+            </div>
           </div>
-          <div>
-            <h1 className="text-[16px] font-extrabold leading-none tracking-tight">Budgeto</h1>
-            <SyncBadge state={syncInfo.state} message={syncInfo.message} id={id} />
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {installEvent && (
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-primary" onClick={() => { void installEvent.prompt(); setInstallEvent(null); }} aria-label={id ? "Install aplikasi" : "Install app"}>
-              <Download size={18} />
+          <div className="flex items-center gap-2">
+            {installApp && (
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-primary" onClick={installApp} aria-label={id ? "Install aplikasi" : "Install app"}>
+                <Download size={18} />
+              </Button>
+            )}
+            <PrivacyToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full border bg-card text-muted-foreground transition-colors hover:bg-surface2 hover:text-foreground"
+              onClick={toggleTheme}
+              aria-label={id ? "Ganti tema gelap/terang" : "Toggle dark/light"}
+            >
+              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-xl bg-card/60 shadow-sm ring-1 ring-border/60 backdrop-blur transition-colors hover:bg-accent"
-            onClick={() => { const next = theme === "dark" ? "light" : "dark"; setTheme(next); useSettings.getState().set("themeMode", next); }}
-            aria-label={id ? "Ganti tema gelap/terang" : "Toggle dark/light"}
-          >
-            {theme === "dark" ? <Sun size={17} className="text-warn" /> : <Moon size={17} className="text-muted-foreground" />}
-          </Button>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {/* Konten — transisi antar view dengan AnimatePresence */}
-      <main ref={scrollRef} className="thin-scroll flex-1 overflow-y-auto px-4 pb-28 pt-2">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={viewKey}
-            initial={{ opacity: 0, y: 16, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.995 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {subView === "goals" ? <GoalsView onBack={() => setSubView(null)} />
-              : subView === "budgets" ? <BudgetsView onBack={() => setSubView(null)} />
-                : subView === "wallets" ? <WalletsView onBack={() => setSubView(null)} />
-                  : subView === "categories" ? <CategoriesView onBack={() => setSubView(null)} />
-                    : subView === "bills" ? <BillsView onBack={() => setSubView(null)} />
-                      : subView === "settings" ? <SettingsView onBack={() => setSubView(null)} />
-                        : tab === "dashboard" ? <DashboardView go={go} onEditTx={openEdit} />
-                          : tab === "transactions" ? <TransactionsView onEditTx={openEdit} />
-                            : tab === "reports" ? <ReportsView />
-                              : <MenuView go={go} id={id} onNotification={requestNotification} walletCount={walletCount} />}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+        {/* Topbar desktop */}
+        <header className="hidden items-start justify-between gap-6 px-8 pb-3 pt-7 lg:flex">
+          <div className="min-w-0">
+            {isDash && (
+              <>
+                <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{greetingFor(id)}</h1>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {id ? "Pantau dan kendalikan uangmu hari ini." : "Monitor and control your money today."}
+                </p>
+              </>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="inline-flex h-10 items-center gap-2 rounded-xl border bg-card px-3.5 text-[13px] font-medium">
+              <CalendarDays size={15} className="text-muted-foreground" />
+              {dateLabel}
+            </span>
+            {installApp && (
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl border bg-card text-primary" onClick={installApp} aria-label={id ? "Install aplikasi" : "Install app"}>
+                <Download size={17} />
+              </Button>
+            )}
+            <PrivacyToggle className="h-10 w-10 rounded-xl" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-xl border bg-card text-muted-foreground transition-colors hover:bg-surface2 hover:text-foreground"
+              onClick={toggleTheme}
+              aria-label={id ? "Ganti tema gelap/terang" : "Toggle dark/light"}
+            >
+              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+            </Button>
+            <button
+              onClick={() => openAdd()}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-foreground px-4 text-[13px] font-semibold text-background transition-opacity hover:opacity-90 active:opacity-80"
+            >
+              <Plus size={16} strokeWidth={2.4} />
+              {id ? "Catat transaksi" : "Add transaction"}
+            </button>
+          </div>
+        </header>
 
-      {/* FAB — muncul dengan spring + denyut cahaya + umpan balik tekan */}
-      <div className="absolute bottom-[74px] left-1/2 z-20 -translate-x-1/2">
-        <span aria-hidden className="fab-glow absolute inset-0 -m-1.5 rounded-[22px] bg-primary/40 blur-md" />
-        <motion.button
+        {/* Konten — transisi antar view dengan AnimatePresence */}
+        <main ref={scrollRef} className="thin-scroll flex-1 overflow-y-auto px-4 pb-32 pt-2 lg:px-8 lg:pb-10 lg:pt-3">
+          <div className={cn("mx-auto w-full", isDash ? "lg:max-w-[1200px]" : "lg:max-w-3xl")}>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={viewKey}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+              >
+                {subView === "goals" ? <GoalsView onBack={() => setSubView(null)} />
+                  : subView === "budgets" ? <BudgetsView onBack={() => setSubView(null)} />
+                    : subView === "wallets" ? <WalletsView onBack={() => setSubView(null)} />
+                      : subView === "categories" ? <CategoriesView onBack={() => setSubView(null)} />
+                        : subView === "bills" ? <BillsView onBack={() => setSubView(null)} />
+                          : subView === "settings" ? <SettingsView onBack={() => setSubView(null)} />
+                            : tab === "dashboard" ? <DashboardView go={go} onEditTx={openEdit} onAdd={openAdd} />
+                              : tab === "transactions" ? <TransactionsView onEditTx={openEdit} />
+                                : tab === "reports" ? <ReportsView />
+                                  : <MenuView go={go} id={id} onNotification={requestNotification} walletCount={walletCount} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </main>
+
+        {/* Tombol tambah — HP saja */}
+        <button
           onClick={() => openAdd()}
           aria-label={id ? "Tambah transaksi" : "Add transaction"}
-          initial={{ scale: 0, rotate: -40 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 18, delay: 0.1 }}
-          whileTap={{ scale: 0.86, rotate: -6 }}
-          whileHover={{ scale: 1.06 }}
-          className="relative flex h-[54px] w-[54px] items-center justify-center rounded-[18px] bg-primary text-primary-foreground shadow-xl ring-1 ring-white/25"
+          className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+32px)] left-1/2 z-20 flex h-[52px] w-[52px] -translate-x-1/2 items-center justify-center rounded-2xl bg-primary text-primary-foreground ring-4 ring-background transition-transform active:scale-95 lg:hidden"
         >
-          <Plus size={26} strokeWidth={2.6} className="drop-shadow" />
-        </motion.button>
-      </div>
+          <Plus size={24} strokeWidth={2.4} />
+        </button>
 
-      {/* Navigasi bawah */}
-      <nav aria-label="Navigasi utama" className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-        <div className="mx-auto max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+10px)]">
-          <div className="pointer-events-auto grid grid-cols-5 items-end rounded-[22px] border bg-card/85 px-2 pb-1.5 pt-2 shadow-lg shadow-black/10 backdrop-blur-xl dark:shadow-black/40">
+        {/* Navigasi bawah — HP saja */}
+        <nav aria-label="Navigasi utama" className="absolute inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
+          <div className="grid grid-cols-5 items-end px-2 pb-2 pt-2">
             {navItems.slice(0, 2).map((item) => (
               <NavBtn key={item.key} item={item} active={tab === item.key && !subView} onClick={() => go(item.key)} />
             ))}
@@ -308,12 +346,96 @@ export function AppShell() {
               <NavBtn key={item.key} item={item} active={tab === item.key && !subView} onClick={() => go(item.key)} />
             ))}
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* Sheet transaksi */}
       <TransactionSheet state={sheet} onClose={() => setSheet({ open: false })} />
     </div>
+  );
+}
+
+function greetingFor(id: boolean): string {
+  const h = new Date().getHours();
+  if (id) return h < 11 ? "Selamat pagi" : h < 15 ? "Selamat siang" : h < 18 ? "Selamat sore" : "Selamat malam";
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+// Sidebar desktop
+type SideItem = { view: View; label: string; icon: typeof Home };
+
+function Sidebar({ current, go, id, sync }: { current: View; go: (v: View) => void; id: boolean; sync: { state: string; message: string } }) {
+  const groups: { title: string; items: SideItem[] }[] = [
+    {
+      title: id ? "Menu utama" : "Main menu",
+      items: [
+        { view: "dashboard", label: id ? "Beranda" : "Home", icon: Home },
+        { view: "transactions", label: id ? "Transaksi" : "Transactions", icon: ArrowLeftRight },
+        { view: "reports", label: id ? "Laporan" : "Reports", icon: BarChart3 },
+      ],
+    },
+    {
+      title: id ? "Fitur" : "Features",
+      items: [
+        { view: "wallets", label: id ? "Dompet" : "Wallets", icon: WalletIcon },
+        { view: "budgets", label: "Budget", icon: Target },
+        { view: "bills", label: id ? "Tagihan & rutin" : "Bills & recurring", icon: Repeat },
+        { view: "goals", label: id ? "Target tabungan" : "Savings goals", icon: PiggyBank },
+        { view: "categories", label: id ? "Kategori" : "Categories", icon: Tags },
+      ],
+    },
+    {
+      title: id ? "Umum" : "General",
+      items: [{ view: "settings", label: id ? "Pengaturan" : "Settings", icon: Settings2 }],
+    },
+  ];
+  return (
+    <aside className="hidden w-[248px] shrink-0 flex-col border-r bg-card px-4 pb-5 pt-6 lg:flex">
+      <div className="flex items-center gap-2.5 px-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-primary text-primary-foreground">
+          <WalletIcon size={18} strokeWidth={2.2} />
+        </div>
+        <span className="text-[18px] font-semibold tracking-tight">Budgeto</span>
+      </div>
+
+      <nav aria-label="Navigasi utama" className="thin-scroll mt-7 flex-1 space-y-6 overflow-y-auto">
+        {groups.map((g) => (
+          <div key={g.title}>
+            <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{g.title}</p>
+            <div className="space-y-0.5">
+              {g.items.map((it) => {
+                const active = current === it.view;
+                return (
+                  <button
+                    key={it.view}
+                    onClick={() => go(it.view)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[13px] transition-colors",
+                      active ? "bg-primary/10 font-semibold text-primary" : "font-medium text-muted-foreground hover:bg-surface2 hover:text-foreground",
+                    )}
+                  >
+                    <it.icon size={18} strokeWidth={active ? 2.3 : 1.9} />
+                    {it.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div className="mt-4 rounded-2xl bg-surface2 p-3.5">
+        <p className="text-[12px] font-semibold">{id ? "Data tersimpan di perangkat" : "Data stays on device"}</p>
+        <SyncBadge state={sync.state} message={sync.message} id={id} />
+        <button
+          onClick={() => go("settings")}
+          className="mt-3 h-9 w-full rounded-lg bg-card text-[12px] font-semibold ring-1 ring-border transition-colors hover:bg-background active:opacity-80"
+        >
+          {id ? "Cadangkan data" : "Back up data"}
+        </button>
+      </div>
+    </aside>
   );
 }
 
@@ -323,30 +445,16 @@ function NavBtn({ item, active, onClick }: { item: { key: string; label: string;
     <button
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className="group relative flex flex-col items-center gap-1 rounded-xl py-1 outline-none active:scale-95 transition-transform"
+      className="flex flex-col items-center gap-1 rounded-xl py-1 outline-none"
     >
-      <span className="relative flex h-7 w-12 items-center justify-center rounded-full">
-        {/* pill aktif meluncur antar tab (layoutId bersama) */}
-        {active && (
-          <motion.span
-            layoutId="nav-active-pill"
-            className="absolute inset-0 rounded-full bg-primary/15"
-            transition={{ type: "spring", stiffness: 480, damping: 38, mass: 0.6 }}
-          />
-        )}
-        <motion.span
-          animate={{ scale: active ? 1.12 : 1, y: active ? -1 : 0 }}
-          transition={{ type: "spring", stiffness: 420, damping: 24 }}
-          className="relative"
-        >
-          <Icon
-            size={19}
-            strokeWidth={active ? 2.5 : 1.9}
-            className={cn("transition-colors duration-300", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground/70")}
-          />
-        </motion.span>
+      <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors", active && "bg-primary/12")}>
+        <Icon
+          size={19}
+          strokeWidth={active ? 2.4 : 1.9}
+          className={active ? "text-primary" : "text-muted-foreground"}
+        />
       </span>
-      <span className={cn("text-[9.5px] leading-none transition-colors", active ? "font-bold text-primary" : "font-medium text-muted-foreground")}>
+      <span className={cn("text-[10px] leading-none", active ? "font-semibold text-primary" : "font-medium text-muted-foreground")}>
         {item.label}
       </span>
     </button>
@@ -362,10 +470,10 @@ function SyncBadge({ state, message, id }: { state: string; message: string; id:
     case "error": icon = <CloudOff size={9} className="text-expense" />; label = id ? "sinkron gagal" : "sync failed"; break;
     case "offline": icon = <CloudOff size={9} />; label = id ? "offline" : "offline"; break;
     case "idle": icon = <Cloud size={9} />; label = id ? "belum login cloud" : "not signed in"; break;
-    default: icon = <span className="h-1.5 w-1.5 rounded-full bg-income" />; label = id ? "mode offline — data aman di HP" : "offline mode — data stays on device";
+    default: icon = <span className="h-1.5 w-1.5 rounded-full bg-income" />; label = id ? "offline · data tersimpan di HP" : "offline · data stays on device";
   }
   return (
-    <p className="mt-0.5 flex items-center gap-1 text-[9px] leading-none text-muted-foreground">
+    <p className="mt-1 flex items-center gap-1 text-[10px] leading-none text-muted-foreground">
       {icon} {label}
     </p>
   );
@@ -385,15 +493,15 @@ function MenuView({ go, id, onNotification, walletCount }: { go: (v: View) => vo
   ];
   return (
     <div className="space-y-3">
-      <h2 className="px-1 pt-1 text-lg font-extrabold tracking-tight">{id ? "Menu" : "Menu"}</h2>
+      <h2 className="px-1 pt-1 text-lg font-semibold tracking-tight">Menu</h2>
       <div className="grid grid-cols-2 gap-2.5">
         {items.map((it, i) => (
           <button
             key={it.view}
             onClick={() => go(it.view)}
-            className={cn("anim-rise group rounded-2xl border bg-card p-3.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97]", `d${i + 1}`)}
+            className={cn("anim-rise group rounded-2xl border bg-card p-3.5 text-left transition-colors hover:bg-surface2 active:bg-surface2", `d${i + 1}`)}
           >
-            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110" style={{ backgroundColor: `color-mix(in srgb, ${it.tint} 14%, transparent)`, color: it.tint }}>
+            <div className="mb-2.5 flex h-9 w-9 items-center justify-center rounded-[11px]" style={{ backgroundColor: `color-mix(in srgb, ${it.tint} 14%, transparent)`, color: it.tint }}>
               <it.icon size={17} strokeWidth={2.2} />
             </div>
             <p className="text-[13px] font-bold leading-tight">{it.title}</p>

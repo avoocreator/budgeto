@@ -1,10 +1,3 @@
-// ============================================================
-// BUDGETO v3.1 — Settings Store (zustand + persist)
-// Tema (mode, 5 schema warna, tone dingin↔hangat), bahasa, periode
-// gajian, keamanan, notifikasi (termasuk notifikasi setiap aksi),
-// kredensial cloud opsional. Tersimpan di localStorage.
-// ============================================================
-
 "use client";
 
 import { create } from "zustand";

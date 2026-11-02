@@ -1,9 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Type Definitions
-// Mengikuti tech-stack.md 2.1: semua entri punya id (UUID klien),
-// createdAt/updatedAt (epoch ms), dan soft delete (deleted).
-// ============================================================
-
 export type TxType = "income" | "expense" | "transfer";
 
 export interface Transaction {
@@ -66,7 +60,7 @@ export interface Goal {
   deleted?: boolean;
 }
 
-// ─── F06: Transaksi berulang ────────────────────────────────
+// Transaksi berulang
 export type Frequency = "weekly" | "monthly";
 
 /** Tagihan menunggu konfirmasi (mode "confirm") */
@@ -105,7 +99,7 @@ export interface SettingRow {
   updatedAt: number;
 }
 
-// ─── Periode & dashboard (F01, F05) ─────────────────────────
+// Periode & dashboard
 export type PeriodMode = "calendar" | "payday";
 
 export interface Period {
@@ -128,9 +122,7 @@ export interface DailyRemaining {
   dailyTarget: number; // rata-rata harian budget
 }
 
-// ─── Snapshot widget (F04) — kontrak v2 ───
-// v2 menambahkan schemaId + colors (warna tema aktual dari app) agar
-// widget Android bisa mengikuti tema aplikasi secara presisi.
+// Snapshot widget
 export interface WidgetThemeColors {
   bg: string;
   surface: string;
@@ -162,6 +154,8 @@ export interface WidgetSnapshot {
   };
   daily: { amount: number; status: DailyStatus | "none"; untilDate: string | null };
   budget: { usedPercent: number };
+  /** v4: pemasukan & pengeluaran periode berjalan (info pendukung di widget) */
+  period?: { income: number; expense: number };
   balance: number;
   labels: {
     today: string;

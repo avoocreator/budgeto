@@ -6,7 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -36,32 +36,25 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ============================================================
-   BUDGETO v3.1 — TOKEN TEMA (F03)
-   Sumber kebenaran warna = lib/themes.ts (5 schema × light/dark +
-   tone dingin↔hangat), diterapkan sebagai CSS variables inline pada
-   <html> oleh ThemeSync. Nilai di bawah ini hanya fallback paint
-   awal (emerald) sebelum hydration.
-   ============================================================ */
-
+/* Token tema fallback */
 :root {
   --radius: 1rem;
 
-  /* ── Token semantik (mode terang) ── */
-  --bg: #f6f7f6;
+  /* Token semantik terang */
+  --bg: #f3f5f4;
   --surface: #ffffff;
-  --surface-2: #f0f2f1;
-  --border-t: #e4e8e6;
-  --text: #17201c;
-  --text-muted: #6b7570;
-  --income: #059669;
-  --expense: #e11d48;
-  --status-ok: #059669;
-  --status-warn: #d97706;
-  --status-bad: #e11d48;
+  --surface-2: #f3f5f4;
+  --border-t: #e8ebe9;
+  --text: #101613;
+  --text-muted: #69736e;
+  --income: #12814f;
+  --expense: #d92d43;
+  --status-ok: #12814f;
+  --status-warn: #b86e00;
+  --status-bad: #d92d43;
 
-  /* ── Aksen default: emerald (identitas widget lama) ── */
-  --accent-t: #059669;
+  /* Aksen default */
+  --accent-t: #12814f;
   --accent-contrast-t: #ffffff;
 
   /* Pemetaan ke shadcn */
@@ -86,20 +79,20 @@
 }
 
 .dark {
-  --bg: #0d1210;
-  --surface: #141b18;
-  --surface-2: #1c2420;
-  --border-t: #253029;
-  --text: #e8edea;
-  --text-muted: #8d9993;
-  --income: #34d399;
-  --expense: #fb7185;
-  --status-ok: #34d399;
-  --status-warn: #fbbf24;
-  --status-bad: #fb7185;
+  --bg: #0b100e;
+  --surface: #121815;
+  --surface-2: #1a211d;
+  --border-t: #232c27;
+  --text: #ecf1ee;
+  --text-muted: #8a958f;
+  --income: #3ecf8e;
+  --expense: #f27a89;
+  --status-ok: #3ecf8e;
+  --status-warn: #f0b429;
+  --status-bad: #f27a89;
 
-  --accent-t: #34d399;
-  --accent-contrast-t: #06281c;
+  --accent-t: #3ecf8e;
+  --accent-contrast-t: #04241a;
 
   --background: var(--bg);
   --foreground: var(--text);
@@ -121,11 +114,9 @@
   --ring: var(--accent-t);
 }
 
-/* ============================================================
-   PRESET AKSEN LAMA (legacy) — hanya fallback sebelum ThemeSync jalan.
-   ============================================================ */
-[data-accent="emerald"], [data-schema="emerald"] { --accent-t: #059669; --accent-contrast-t: #ffffff; }
-[data-accent="emerald"].dark, [data-schema="emerald"].dark { --accent-t: #34d399; --accent-contrast-t: #06281c; }
+/* Preset aksen fallback */
+[data-accent="emerald"], [data-schema="emerald"] { --accent-t: #12814f; --accent-contrast-t: #ffffff; }
+[data-accent="emerald"].dark, [data-schema="emerald"].dark { --accent-t: #3ecf8e; --accent-contrast-t: #04241a; }
 [data-accent="ocean"],    [data-schema="aqua"]     { --accent-t: #0e7490; --accent-contrast-t: #ffffff; }
 [data-accent="ocean"].dark,   [data-schema="aqua"].dark   { --accent-t: #22d3ee; --accent-contrast-t: #08252b; }
 [data-accent="sunset"],   [data-schema="sunset"]   { --accent-t: #ea580c; --accent-contrast-t: #ffffff; }
@@ -143,7 +134,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "tnum" 1; /* angka tabular di seluruh app */
+    font-feature-settings: "tnum" 1, "cv11" 1; /* angka tabular di seluruh app */
     overscroll-behavior-y: none;
   }
   button { -webkit-tap-highlight-color: transparent; }
@@ -154,19 +145,19 @@
 .thin-scroll::-webkit-scrollbar-thumb { background: var(--border-t); border-radius: 8px; }
 .thin-scroll { scrollbar-width: thin; scrollbar-color: var(--border-t) transparent; }
 
-/* Animasi halus (hormati "kurangi animasi") */
+/* Animasi — hanya transisi masuk yang halus (hormati "kurangi animasi") */
 @media (prefers-reduced-motion: no-preference) {
-  .anim-rise { animation: rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .anim-sheet { animation: sheetup 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .d1 { animation-delay: 0.03s; } .d2 { animation-delay: 0.06s; }
-  .d3 { animation-delay: 0.09s; } .d4 { animation-delay: 0.12s; }
-  .d5 { animation-delay: 0.15s; } .d6 { animation-delay: 0.18s; }
+  .anim-rise { animation: rise 0.22s ease-out both; }
+  .anim-sheet { animation: sheetup 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .d1 { animation-delay: 0.02s; } .d2 { animation-delay: 0.04s; }
+  .d3 { animation-delay: 0.06s; } .d4 { animation-delay: 0.08s; }
+  .d5 { animation-delay: 0.10s; } .d6 { animation-delay: 0.12s; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .anim-rise, .anim-sheet, .fab-glow, .drift { animation: none; }
+  .anim-rise, .anim-sheet { animation: none; }
 }
 @keyframes rise {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes sheetup {
@@ -179,27 +170,13 @@
 }
 .popnum { animation: popnum 0.18s ease-out; }
 
-/* Denyut halus untuk cahaya FAB */
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.08); }
-}
-.fab-glow { animation: glow-pulse 2.6s ease-in-out infinite; }
-
-/* Lembut untuk latar kartu utama dashboard */
-@keyframes drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-6px, 6px) scale(1.06); }
-}
-.drift { animation: drift 9s ease-in-out infinite; }
-
 /* Angka utama besar */
 .big-number {
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
-/* ── Slider tone (dingin ↔ hangat) ── */
+/* Slider tone */
 .tone-slider {
   background: linear-gradient(
     to right,

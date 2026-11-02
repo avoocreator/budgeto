@@ -1,14 +1,3 @@
-// ============================================================
-// BUDGETO v3.1 — Sinkronisasi tema & bahasa ke <html>
-// ThemeSync:
-//  - terapkan schema warna (5 schema) + tone (dingin↔hangat) sebagai
-//    CSS variables inline pada <html> (sumber kebenaran: lib/themes.ts)
-//  - pasang data-schema & data-accent (legacy) pada <html>
-//  - mode light/dark/system → next-themes
-//  - kirim ulang snapshot widget saat tema/privasi berubah
-// LangSync: bahasa awal mengikuti sistem (F09) + pasang data-lang.
-// ============================================================
-
 "use client";
 
 import { useEffect } from "react";

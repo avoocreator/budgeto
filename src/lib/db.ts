@@ -1,9 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Database Lokal (IndexedDB via Dexie)
-// Offline-first: semua data tersimpan di perangkat.
-// DB baru "budgeto-v3" (v2 tetap tak tersentuh; migrasi manual via backup).
-// ============================================================
-
 import Dexie, { type Table } from "dexie";
 import type { Transaction, Category, Wallet, Budget, Goal, SettingRow, RecurringRule } from "./types";
 
@@ -19,7 +13,6 @@ export class BudgetoDB extends Dexie {
   constructor() {
     super("budgeto-v3");
     this.version(1).stores({
-      // indeks mendukung filter periode, sync delta, dan pencarian cepat
       transactions: "id, date, type, categoryId, walletId, ruleId, createdAt, updatedAt, [date+type]",
       categories: "id, type, name, updatedAt",
       wallets: "id, name, updatedAt",
@@ -33,14 +26,12 @@ export class BudgetoDB extends Dexie {
 
 export const db = new BudgetoDB();
 
-/** id selalu UUID penuh (crypto.randomUUID) — aman dipakai PK global lintas pengguna. */
 export function uid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
-  // fallback sangat kecil kemungkinan terpakai; tetap UUID-format
   return `${Date.now().toString(16).padStart(12, "0")}-4${Math.random().toString(16).slice(1, 12)}-a${Math.random().toString(16).slice(1, 12)}-b${Math.random().toString(16).slice(1, 12)}${Date.now().toString(16).slice(-4)}`;
 }
 
-// ─── SEED DATA ───────────────────────────────────────────────
+// Seed data
 const DEFAULT_CATEGORIES: Omit<Category, "id" | "createdAt" | "updatedAt">[] = [
   { name: "Makan & Minum", type: "expense", icon: "utensils", color: "#f59e0b" },
   { name: "Transportasi", type: "expense", icon: "car", color: "#06b6d4" },

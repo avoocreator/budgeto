@@ -1,10 +1,3 @@
-// ============================================================
-// BUDGETO v3 — i18n (F09): Indonesia & Inggris
-// Ringan: kamus flat + zustand store. Locale memengaruhi teks,
-// format angka (Intl.NumberFormat) dan tanggal (Intl.DateTimeFormat).
-// Teks widget & notifikasi baru ikut diterjemahkan (lewat snapshot/argumen).
-// ============================================================
-
 "use client";
 
 import { create } from "zustand";

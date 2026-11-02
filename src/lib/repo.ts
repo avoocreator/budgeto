@@ -1,9 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Repository (CRUD + alur bisnis)
-// Setiap perubahan data memicu: snapshot widget (F04), auto-sync
-// (opsional), dan notifikasi/peringatan yang relevan.
-// ============================================================
-
 "use client";
 
 import { db, uid } from "./db";
@@ -35,7 +29,7 @@ function afterChange(): void {
   scheduleSync();
 }
 
-// ─── TRANSAKSI ───────────────────────────────────────────────
+// Transaksi
 let lastSaveAt = 0;
 
 export async function saveTransaction(input: {
@@ -147,9 +141,7 @@ export async function checkBudgetAlerts(): Promise<void> {
   }
 }
 
-// ─── F02: Saran kategori dari riwayat ────────────────────────
-/** Kategori yang paling sering dipakai pada transaksi serupa (jenis sama),
- *  dengan bonus bila catatan mirip. Dipakai sheet catat cepat. */
+// Saran kategori
 export async function suggestCategories(type: "income" | "expense", note = ""): Promise<{ ranked: Category[]; top: Category | null }> {
   const [txs, cats] = await Promise.all([
     db.transactions.orderBy("createdAt").reverse().limit(300).toArray(),
@@ -172,7 +164,7 @@ export async function suggestCategories(type: "income" | "expense", note = ""): 
   return { ranked, top };
 }
 
-// ─── KATEGORI ────────────────────────────────────────────────
+// Kategori
 export async function saveCategory(input: { id?: string; name: string; type: "income" | "expense"; icon: string; color: string }): Promise<void> {
   const existing = input.id ? await db.categories.get(input.id) : null;
   const cat: Category = {
@@ -201,7 +193,7 @@ export async function deleteCategory(id: string): Promise<void> {
   afterChange();
 }
 
-// ─── DOMPET ──────────────────────────────────────────────────
+// Dompet
 export async function saveWallet(input: { id?: string; name: string; icon: string; color: string; initialBalance: number }): Promise<void> {
   const existing = input.id ? await db.wallets.get(input.id) : null;
   const w: Wallet = {
@@ -230,7 +222,7 @@ export async function deleteWallet(id: string): Promise<void> {
   afterChange();
 }
 
-// ─── BUDGET ──────────────────────────────────────────────────
+// Budget
 export async function saveBudget(input: { id?: string; categoryId: string; amount: number }): Promise<void> {
   const existing = input.id ? await db.budgets.get(input.id) : null;
   const b: Budget = {
@@ -261,7 +253,7 @@ export async function deleteBudget(id: string): Promise<void> {
   afterChange();
 }
 
-// ─── TARGET TABUNGAN ─────────────────────────────────────────
+// Target tabungan
 export async function saveGoal(input: { id?: string; name: string; targetAmount: number; currentAmount: number; deadline: string | null; icon: string; color: string; status?: Goal["status"] }): Promise<void> {
   const existing = input.id ? await db.goals.get(input.id) : null;
   const g: Goal = {
@@ -321,7 +313,7 @@ export async function deleteGoal(id: string): Promise<void> {
   afterChange();
 }
 
-// ─── ATURAN BERULANG (F06) ───────────────────────────────────
+// Aturan berulang
 export async function saveRecurringRule(input: {
   id?: string; name: string; type: "expense" | "income"; amount: number;
   categoryId: string; walletId: string; frequency: RecurringRule["frequency"];
@@ -371,7 +363,7 @@ export async function deleteRecurringRule(id: string): Promise<void> {
   afterChange();
 }
 
-// ─── EKSPOR / IMPOR / RESET ─────────────────────────────────
+// Ekspor, impor, reset
 export async function exportData(): Promise<string> {
   const [transactions, categories, wallets, budgets, goals, recurringRules] = await Promise.all([
     db.transactions.toArray(), db.categories.toArray(), db.wallets.toArray(),

@@ -1,9 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Formatting (mata uang & tanggal)
-// Nominal selalu angka tabular (tabular-nums diterapkan via CSS),
-// format mengikuti bahasa terpilih (Intl).
-// ============================================================
-
 import type { Lang } from "./i18n";
 import { localeOf } from "./i18n";
 
@@ -32,7 +26,7 @@ export function formatNumber(n: number, lang: Lang = "id"): string {
   return new Intl.NumberFormat(localeOf(lang)).format(n);
 }
 
-// ─── Tanggal ─────────────────────────────────────────────────
+// Tanggal
 export function todayStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

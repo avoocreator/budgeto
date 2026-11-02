@@ -1,10 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Logika uang (F01 + laporan)
-// Sumber kebenaran: Dexie. Semua fungsi murni bila memungkinkan
-// agar mudah dites: skenario F01 → budget 1.500.000, terpakai
-// 600.000, sisa 10 hari, tagihan 100.000 → sisa harian 80.000.
-// ============================================================
-
 import type { Transaction, Wallet, Budget, Category, DailyRemaining, DailyStatus, RecurringRule } from "./types";
 import type { Period } from "./types";
 import { remainingDays, periodLength } from "./period";

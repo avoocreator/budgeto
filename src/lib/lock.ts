@@ -1,15 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Kunci app & mode privasi (F07)
-// - PIN di-hash PBKDF2 (WebCrypto) dengan salt acak; TIDAK pernah
-//   tersimpan polos di IndexedDB/localStorage.
-// - Kunci saat app dibuka dan saat kembali dari latar belakang
-//   setelah jeda (autoLockDelay: 0 / 60 / 300 detik).
-// - Mode privasi: angka tampil sebagai •••• di dashboard (widget ikut
-//   lewat snapshot.privacy).
-// - Lupa PIN: jalur pemulihan satu-satunya adalah hapus semua data
-//   (konsekuensinya dijelaskan di UI sebelum pengguna melanjutkan).
-// ============================================================
-
 "use client";
 
 import { create } from "zustand";

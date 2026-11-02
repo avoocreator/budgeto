@@ -1,8 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Layar kelola: Budget, Dompet, Target Tabungan, Kategori
-// Ditata ulang ke token tema v3 (F03); logika tetap dari repo.ts.
-// ============================================================
-
 "use client";
 
 import { useState } from "react";
@@ -27,16 +22,14 @@ function SubHeader({ title, desc, onBack }: { title: string; desc: string; onBac
         <ArrowLeft size={17} />
       </button>
       <div>
-        <h1 className="text-lg font-extrabold tracking-tight">{title}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         <p className="text-[11px] leading-snug text-muted-foreground">{desc}</p>
       </div>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// BUDGET
-// ════════════════════════════════════════════════════════════
+// Budget
 export function BudgetsView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const periodMode = useSettings((s) => s.periodMode);
@@ -115,7 +108,7 @@ export function BudgetsView({ onBack }: { onBack: () => void }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <button className="absolute inset-0 bg-black/45" onClick={() => setForm({ open: false, categoryId: "", amount: "" })} aria-label="Tutup" />
           <div className="anim-sheet relative mx-auto w-full max-w-md rounded-t-[24px] border bg-card p-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-            <h3 className="pb-3 text-sm font-extrabold">{form.id ? (lang === "id" ? "Ubah budget" : "Edit budget") : (lang === "id" ? "Tambah budget" : "Add budget")}</h3>
+            <h3 className="pb-3 text-sm font-semibold">{form.id ? (lang === "id" ? "Ubah budget" : "Edit budget") : (lang === "id" ? "Tambah budget" : "Add budget")}</h3>
             <label className="block pb-2.5">
               <span className="pb-1 block text-[11px] font-bold text-muted-foreground">{lang === "id" ? "Kategori" : "Category"}</span>
               <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} disabled={!!form.id} className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-sm font-semibold outline-none ring-1 ring-border">
@@ -132,7 +125,7 @@ export function BudgetsView({ onBack }: { onBack: () => void }) {
               <button
                 disabled={!form.categoryId || !Number(form.amount)}
                 onClick={async () => { await saveBudget({ id: form.id, categoryId: form.categoryId, amount: Number(form.amount) }); setForm({ open: false, categoryId: "", amount: "" }); }}
-                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
               >
                 {lang === "id" ? "Simpan" : "Save"}
               </button>
@@ -144,9 +137,7 @@ export function BudgetsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// DOMPET
-// ════════════════════════════════════════════════════════════
+// Dompet
 export function WalletsView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const wallets = useLiveQuery(() => db.wallets.filter((w) => !w.deleted).toArray(), []);
@@ -170,7 +161,7 @@ export function WalletsView({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
               <p className="mt-2 truncate text-[12px] font-bold">{w.name}</p>
-              <MoneyText amount={bal} className={cn("text-[15px] font-extrabold", bal < 0 && "text-bad")} />
+              <MoneyText amount={bal} className={cn("text-[15px] font-semibold", bal < 0 && "text-bad")} />
             </Card>
           );
         })}
@@ -187,7 +178,7 @@ export function WalletsView({ onBack }: { onBack: () => void }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <button className="absolute inset-0 bg-black/45" onClick={() => setForm({ ...form, open: false })} aria-label="Tutup" />
           <div className="anim-sheet relative mx-auto w-full max-w-md rounded-t-[24px] border bg-card p-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-            <h3 className="pb-3 text-sm font-extrabold">{form.id ? (lang === "id" ? "Ubah dompet" : "Edit wallet") : (lang === "id" ? "Tambah dompet" : "Add wallet")}</h3>
+            <h3 className="pb-3 text-sm font-semibold">{form.id ? (lang === "id" ? "Ubah dompet" : "Edit wallet") : (lang === "id" ? "Tambah dompet" : "Add wallet")}</h3>
             <label className="block pb-2.5">
               <span className="pb-1 block text-[11px] font-bold text-muted-foreground">{lang === "id" ? "Nama dompet" : "Wallet name"}</span>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={lang === "id" ? "mis. BCA, GoPay" : "e.g. BCA, GoPay"} className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-sm outline-none ring-1 ring-border" />
@@ -217,7 +208,7 @@ export function WalletsView({ onBack }: { onBack: () => void }) {
               <button
                 disabled={!form.name.trim()}
                 onClick={async () => { await saveWallet({ id: form.id, name: form.name, icon: form.icon, color: form.color, initialBalance: Number(form.initialBalance) }); setForm({ ...form, open: false }); }}
-                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
               >
                 {lang === "id" ? "Simpan" : "Save"}
               </button>
@@ -229,9 +220,7 @@ export function WalletsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// TARGET TABUNGAN
-// ════════════════════════════════════════════════════════════
+// Target tabungan
 export function GoalsView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.deleted).toArray(), []);
@@ -250,13 +239,13 @@ export function GoalsView({ onBack }: { onBack: () => void }) {
               <div className="flex items-center gap-2.5">
                 <IconBubble name={g.icon} color={g.color} size={36} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-bold">{g.name} {g.status === "achieved" && <span className="ml-1 rounded-full bg-ok/15 px-1.5 py-0.5 text-[9px] font-extrabold text-ok">✓</span>}</p>
+                  <p className="truncate text-[13px] font-bold">{g.name} {g.status === "achieved" && <span className="ml-1 rounded-full bg-ok/15 px-1.5 py-0.5 text-[9px] font-semibold text-ok">✓</span>}</p>
                   <p className="text-[11px] text-muted-foreground">
                     <MoneyText amount={g.currentAmount} className="font-semibold text-foreground/80" /> {lang === "id" ? "dari" : "of"} <MoneyText amount={g.targetAmount} className="font-semibold text-foreground/80" />
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setAddId({ id: g.id, amount: "" })} className="rounded-full bg-primary/12 px-2.5 py-1.5 text-[10px] font-extrabold text-primary">+ {lang === "id" ? "Dana" : "Funds"}</button>
+                  <button onClick={() => setAddId({ id: g.id, amount: "" })} className="rounded-full bg-primary/12 px-2.5 py-1.5 text-[10px] font-semibold text-primary">+ {lang === "id" ? "Dana" : "Funds"}</button>
                   <button onClick={() => setForm({ open: true, id: g.id, name: g.name, target: String(g.targetAmount), current: String(g.currentAmount), deadline: g.deadline ?? "", icon: g.icon, color: g.color })} aria-label="Ubah" className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"><Pencil size={14} /></button>
                   <button onClick={() => { if (confirm(lang === "id" ? "Hapus target ini?" : "Delete this goal?")) void deleteGoal(g.id); }} aria-label="Hapus" className="flex h-8 w-8 items-center justify-center rounded-lg text-bad hover:bg-bad/10"><Trash2 size={14} /></button>
                 </div>
@@ -287,14 +276,14 @@ export function GoalsView({ onBack }: { onBack: () => void }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <button className="absolute inset-0 bg-black/45" onClick={() => setAddId(null)} aria-label="Tutup" />
           <div className="anim-sheet relative mx-auto w-full max-w-md rounded-t-[24px] border bg-card p-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-            <h3 className="pb-3 text-sm font-extrabold">{lang === "id" ? "Tambah dana" : "Add funds"}</h3>
-            <input inputMode="numeric" value={addId.amount} onChange={(e) => setAddId({ ...addId, amount: e.target.value.replace(/\D/g, "") })} placeholder="0" className="w-full rounded-xl bg-surface2 px-3 py-3 text-center text-lg font-extrabold outline-none ring-1 ring-border" />
+            <h3 className="pb-3 text-sm font-semibold">{lang === "id" ? "Tambah dana" : "Add funds"}</h3>
+            <input inputMode="numeric" value={addId.amount} onChange={(e) => setAddId({ ...addId, amount: e.target.value.replace(/\D/g, "") })} placeholder="0" className="w-full rounded-xl bg-surface2 px-3 py-3 text-center text-lg font-semibold outline-none ring-1 ring-border" />
             <div className="flex gap-2 pt-3">
               <button onClick={() => setAddId(null)} className="flex-1 rounded-xl bg-surface2 py-2.5 text-xs font-bold text-muted-foreground">{lang === "id" ? "Batal" : "Cancel"}</button>
               <button
                 disabled={!Number(addId.amount)}
                 onClick={async () => { await addToGoal(addId.id, Number(addId.amount)); setAddId(null); }}
-                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
               >
                 {lang === "id" ? "Tambah" : "Add"}
               </button>
@@ -308,7 +297,7 @@ export function GoalsView({ onBack }: { onBack: () => void }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <button className="absolute inset-0 bg-black/45" onClick={() => setForm({ ...form, open: false })} aria-label="Tutup" />
           <div className="anim-sheet relative mx-auto w-full max-w-md rounded-t-[24px] border bg-card p-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-            <h3 className="pb-3 text-sm font-extrabold">{form.id ? (lang === "id" ? "Ubah target" : "Edit goal") : (lang === "id" ? "Tambah target" : "Add goal")}</h3>
+            <h3 className="pb-3 text-sm font-semibold">{form.id ? (lang === "id" ? "Ubah target" : "Edit goal") : (lang === "id" ? "Tambah target" : "Add goal")}</h3>
             <label className="block pb-2.5">
               <span className="pb-1 block text-[11px] font-bold text-muted-foreground">{lang === "id" ? "Nama" : "Name"}</span>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={lang === "id" ? "mis. Dana darurat" : "e.g. Emergency fund"} className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-sm outline-none ring-1 ring-border" />
@@ -332,7 +321,7 @@ export function GoalsView({ onBack }: { onBack: () => void }) {
               <button
                 disabled={!form.name.trim() || !Number(form.target)}
                 onClick={async () => { await saveGoal({ id: form.id, name: form.name, targetAmount: Number(form.target), currentAmount: Number(form.current), deadline: form.deadline || null, icon: form.icon, color: form.color }); setForm({ ...form, open: false }); }}
-                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
               >
                 {lang === "id" ? "Simpan" : "Save"}
               </button>
@@ -344,9 +333,7 @@ export function GoalsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// KATEGORI
-// ════════════════════════════════════════════════════════════
+// Kategori
 export function CategoriesView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const cats = useLiveQuery(() => db.categories.filter((c) => !c.deleted).toArray(), []);
@@ -390,7 +377,7 @@ export function CategoriesView({ onBack }: { onBack: () => void }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <button className="absolute inset-0 bg-black/45" onClick={() => setForm({ ...form, open: false })} aria-label="Tutup" />
           <div className="anim-sheet relative mx-auto w-full max-w-md rounded-t-[24px] border bg-card p-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-            <h3 className="pb-3 text-sm font-extrabold">{form.id ? (lang === "id" ? "Ubah kategori" : "Edit category") : (lang === "id" ? "Tambah kategori" : "Add category")}</h3>
+            <h3 className="pb-3 text-sm font-semibold">{form.id ? (lang === "id" ? "Ubah kategori" : "Edit category") : (lang === "id" ? "Tambah kategori" : "Add category")}</h3>
             <div className="mb-2.5 grid grid-cols-2 gap-1 rounded-xl bg-surface2 p-1">
               {(["expense", "income"] as const).map((t) => (
                 <button key={t} onClick={() => setForm({ ...form, type: t })} className={cn("rounded-lg py-2 text-xs font-bold", form.type === t ? "bg-card shadow-sm" : "text-muted-foreground")}>
@@ -421,7 +408,7 @@ export function CategoriesView({ onBack }: { onBack: () => void }) {
               <button
                 disabled={!form.name.trim()}
                 onClick={async () => { await saveCategory({ id: form.id, name: form.name, type: form.type, icon: form.icon, color: form.color }); setForm({ ...form, open: false }); }}
-                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
               >
                 {lang === "id" ? "Simpan" : "Save"}
               </button>

@@ -1,12 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Onboarding (alur A, user-flow.md)
-// 1) Tanggal gajian (boleh pakai bulan kalender) — dilewati boleh
-// 2) Dompet pertama + saldo awal
-// 3) Budget periode (opsional)
-// 4) PIN opsional
-// Melewati semua langkah tetap menghasilkan app yang bisa dipakai.
-// ============================================================
-
 "use client";
 
 import { useState } from "react";
@@ -82,7 +73,7 @@ export function Onboarding() {
   const next = () => (step < totalSteps - 1 ? setStep(step + 1) : void finish());
 
   const steps = [
-    // ── 0: Welcome + payday ──
+    // Langkah 0: Tanggal gajian
     {
       icon: <CalendarDays size={22} />,
       title: id ? "Kapan tanggal gajianmu?" : "When is your payday?",
@@ -99,9 +90,9 @@ export function Onboarding() {
           />
           {periodMode === "payday" && (
             <div className="flex items-center justify-center gap-2">
-              <button onClick={() => setPayday((p) => Math.max(1, p - 1))} className="h-11 w-11 rounded-2xl bg-surface2 text-lg font-extrabold">−</button>
-              <div className="flex h-11 w-24 items-center justify-center rounded-2xl bg-primary/10 text-lg font-extrabold text-primary">{payday}</div>
-              <button onClick={() => setPayday((p) => Math.min(31, p + 1))} className="h-11 w-11 rounded-2xl bg-surface2 text-lg font-extrabold">+</button>
+              <button onClick={() => setPayday((p) => Math.max(1, p - 1))} className="h-11 w-11 rounded-2xl bg-surface2 text-lg font-semibold">−</button>
+              <div className="flex h-11 w-24 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary">{payday}</div>
+              <button onClick={() => setPayday((p) => Math.min(31, p + 1))} className="h-11 w-11 rounded-2xl bg-surface2 text-lg font-semibold">+</button>
             </div>
           )}
           <p className="rounded-xl bg-surface2 p-3 text-center text-[11px] font-semibold text-muted-foreground">
@@ -110,7 +101,7 @@ export function Onboarding() {
         </div>
       ),
     },
-    // ── 1: Dompet pertama ──
+    // Langkah 1: Dompet pertama
     {
       icon: <Wallet size={22} />,
       title: id ? "Buat dompet pertamamu" : "Create your first wallet",
@@ -133,7 +124,7 @@ export function Onboarding() {
         </div>
       ),
     },
-    // ── 2: Budget ──
+    // Langkah 2: Budget
     {
       icon: <Gauge size={22} />,
       title: id ? "Berapa budgetmu per periode?" : "What's your budget per period?",
@@ -146,7 +137,7 @@ export function Onboarding() {
             onChange={(e) => setBudgetAmount(e.target.value.replace(/\D/g, ""))}
             inputMode="numeric"
             placeholder="0"
-            className="w-full rounded-xl bg-surface2 py-3 pl-10 pr-3.5 text-sm font-extrabold outline-none ring-1 ring-border focus:ring-2 focus:ring-ring"
+            className="w-full rounded-xl bg-surface2 py-3 pl-10 pr-3.5 text-sm font-semibold outline-none ring-1 ring-border focus:ring-2 focus:ring-ring"
           />
           {Number(budgetAmount) > 0 && periodLabel(currentPeriod(periodMode, payday), lang) && (
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
@@ -156,7 +147,7 @@ export function Onboarding() {
         </div>
       ),
     },
-    // ── 3: PIN opsional ──
+    // Langkah 3: PIN opsional
     {
       icon: <ShieldCheck size={22} />,
       title: id ? "Lindungi dengan PIN?" : "Protect with a PIN?",
@@ -168,7 +159,7 @@ export function Onboarding() {
           inputMode="numeric"
           type="password"
           placeholder={id ? "PIN 4–6 digit (kosongkan bila tidak)" : "4–6 digit PIN (empty to skip)"}
-          className="w-full rounded-xl bg-surface2 px-3.5 py-3 text-center text-sm font-extrabold tracking-[0.35em] outline-none ring-1 ring-border focus:ring-2 focus:ring-ring"
+          className="w-full rounded-xl bg-surface2 px-3.5 py-3 text-center text-sm font-semibold tracking-[0.35em] outline-none ring-1 ring-border focus:ring-2 focus:ring-ring"
         />
       ),
     },
@@ -181,10 +172,10 @@ export function Onboarding() {
       {/* Logo */}
       {step0 && (
         <div className="anim-rise flex flex-col items-center pb-4 pt-6 text-center">
-          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-primary to-primary/60 text-2xl font-black text-primary-foreground shadow-lg">
+          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[20px] bg-primary text-2xl font-bold text-primary-foreground">
             B
           </div>
-          <h1 className="text-2xl font-black tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight">
             {id ? "Selamat datang di Budgeto" : "Welcome to Budgeto"}
           </h1>
           <p className="mt-1.5 max-w-[280px] text-sm leading-relaxed text-muted-foreground">
@@ -206,7 +197,7 @@ export function Onboarding() {
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">{steps[step].icon}</span>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{id ? `Langkah ${step + 1}` : `Step ${step + 1}`}</p>
-            <h2 className="text-lg font-extrabold leading-tight tracking-tight">{steps[step].title}</h2>
+            <h2 className="text-lg font-semibold leading-tight tracking-tight">{steps[step].title}</h2>
           </div>
         </div>
         <p className="pb-4 text-[13px] leading-relaxed text-muted-foreground">{steps[step].desc}</p>
@@ -218,7 +209,7 @@ export function Onboarding() {
         <button
           onClick={next}
           disabled={busy}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-extrabold text-primary-foreground shadow-md transition-transform active:scale-[0.98] disabled:opacity-50"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           {step === totalSteps - 1 ? <Sparkles size={16} /> : <ArrowRight size={16} />}
           {busy ? "…" : step === totalSteps - 1 ? (id ? "Mulai pakai" : "Start using") : (id ? "Lanjut" : "Next")}

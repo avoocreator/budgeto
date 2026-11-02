@@ -1,10 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Laporan
-// Tren 6 periode (ikut aturan periode), komposisi kategori,
-// aktivitas harian. Satu kalimat insight di atas tiap grafik,
-// dihitung dari data (bukan ditulis tangan) — design.md §3.
-// ============================================================
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -35,11 +28,11 @@ export function ReportsView() {
   const loading = txs === undefined;
   const data = useMemo(() => activeTxs(txs ?? []), [txs]);
 
-  // ── agregat periode aktif & sebelumnya ──
+  // Agregat periode
   const curSum = useMemo(() => sumPeriod(data, cur), [data, cur]);
   const prevSum = useMemo(() => sumPeriod(data, prev), [data, prev]);
 
-  // ── tren 6 periode ──
+  // Tren 6 periode
   const trend = useMemo(() => {
     const arr: { label: string; income: number; expense: number }[] = [];
     for (let i = -5; i <= 0; i++) {
@@ -51,7 +44,7 @@ export function ReportsView() {
     return arr;
   }, [data, cur, periodMode, payday, lang]);
 
-  // ── komposisi kategori ──
+  // Komposisi kategori
   const catData = useMemo(() => {
     const map = spentByCategory(data, cur);
     return Array.from(map.entries())
@@ -60,7 +53,7 @@ export function ReportsView() {
       .slice(0, 8);
   }, [data, cur, cats]);
 
-  // ── aktivitas harian ──
+  // Aktivitas harian
   const dailyData = useMemo(() => {
     const arr: { day: string; expense: number; income: number }[] = [];
     let d = cur.start;
@@ -85,7 +78,7 @@ export function ReportsView() {
   const fmt = (v: number) => formatMoney(v, lang, { compact: true });
   const hasData = data.length > 0;
 
-  // ── insight (dihitung dari data) ──
+  // Insight data
   const expenseDelta = prevSum.expense > 0 ? ((curSum.expense - prevSum.expense) / prevSum.expense) * 100 : 0;
   const top = topCategoryName(spentByCategory(data, cur), cats ?? []);
   const insightExpense = prevSum.expense > 0
@@ -99,7 +92,7 @@ export function ReportsView() {
     <div className="space-y-4 pb-2">
       {/* Header + navigasi periode */}
       <div>
-        <h1 className="text-lg font-extrabold tracking-tight">{lang === "id" ? "Laporan" : "Reports"}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{lang === "id" ? "Laporan" : "Reports"}</h1>
         <div className="mt-2 flex items-center gap-2">
           <button onClick={() => setOffset((o) => o - 1)} className="rounded-xl bg-card px-3 py-2 text-xs font-bold ring-1 ring-border">←</button>
           <div className="flex-1 text-center">
@@ -115,15 +108,15 @@ export function ReportsView() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang === "id" ? "Masuk" : "In"}</p>
-            <p className="big-number text-[15px] font-extrabold text-income">{fmt(curSum.income)}</p>
+            <p className="big-number text-[15px] font-semibold text-income">{fmt(curSum.income)}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang === "id" ? "Keluar" : "Out"}</p>
-            <p className="big-number text-[15px] font-extrabold text-expense">{fmt(curSum.expense)}</p>
+            <p className="big-number text-[15px] font-semibold text-expense">{fmt(curSum.expense)}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang === "id" ? "Selisih" : "Net"}</p>
-            <p className={cn("big-number text-[15px] font-extrabold", net >= 0 ? "text-ok" : "text-bad")}>{fmt(net)}</p>
+            <p className={cn("big-number text-[15px] font-semibold", net >= 0 ? "text-ok" : "text-bad")}>{fmt(net)}</p>
           </div>
         </div>
       </Card>

@@ -1,11 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Pengaturan
-// Tampilan (mode + 6 preset aksen, F03), Bahasa (F09), Periode &
-// tanggal gajian (F05, dengan pratinjau + peringatan), Keamanan
-// (PIN & privasi, F07), Notifikasi, Data & backup (JSON/CSV),
-// Sinkron cloud opsional, Zona berbahaya.
-// ============================================================
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -48,12 +40,12 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
           <ArrowLeft size={17} />
         </button>
         <div>
-          <h1 className="text-lg font-extrabold tracking-tight">{dict.settings}</h1>
+          <h1 className="text-lg font-semibold tracking-tight">{dict.settings}</h1>
           <p className="text-[11px] text-muted-foreground">Budgeto v3</p>
         </div>
       </div>
 
-      {/* ── Tampilan ── */}
+      {/* Tampilan */}
       <Section icon={<Palette size={15} />} title={dict.appearance}>
         <div className="space-y-4 p-4">
           <div>
@@ -77,7 +69,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
           <div>
             <div className="flex items-center justify-between pb-1.5">
               <p className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground"><Thermometer size={12} /> {dict.tone}</p>
-              <p className="text-[11px] font-extrabold text-primary">{toneLabel(s.tone, t.lang)}</p>
+              <p className="text-[11px] font-semibold text-primary">{toneLabel(s.tone, t.lang)}</p>
             </div>
             <input
               type="range"
@@ -98,7 +90,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         </div>
       </Section>
 
-      {/* ── Bahasa ── */}
+      {/* Bahasa */}
       <Section icon={<Languages size={15} />} title={dict.language}>
         <div className="p-4">
           <Segmented
@@ -112,7 +104,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         </div>
       </Section>
 
-      {/* ── Periode & gajian ── */}
+      {/* Periode & gajian */}
       <Section icon={<CalendarDays size={15} />} title={dict.periodPayday}>
         <div className="space-y-3 p-4">
           <div>
@@ -133,13 +125,13 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
                 inputMode="numeric"
                 value={s.payday}
                 onChange={(e) => set("payday", Math.min(31, Math.max(1, Number(e.target.value.replace(/\D/g, "")) || 1)))}
-                className="w-24 rounded-xl bg-surface2 px-3 py-2.5 text-sm font-extrabold outline-none ring-1 ring-border"
+                className="w-24 rounded-xl bg-surface2 px-3 py-2.5 text-sm font-semibold outline-none ring-1 ring-border"
               />
             </label>
           )}
           <div className="rounded-xl bg-primary/8 p-3">
             <p className="text-[10px] font-bold uppercase text-muted-foreground">{dict.periodPreview}</p>
-            <p className="text-xs font-extrabold text-primary">{periodLabel(currentPeriod(s.periodMode, s.payday), s.lang)}</p>
+            <p className="text-xs font-semibold text-primary">{periodLabel(currentPeriod(s.periodMode, s.payday), s.lang)}</p>
           </div>
           <p className="flex items-start gap-1.5 rounded-xl bg-warn/10 p-2.5 text-[10px] leading-relaxed text-warn">
             <Info size={12} className="mt-0.5 shrink-0" />
@@ -148,10 +140,10 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         </div>
       </Section>
 
-      {/* ── Keamanan & privasi ── */}
+      {/* Keamanan & privasi */}
       <SecuritySection dict={dict} />
 
-      {/* ── Notifikasi ── */}
+      {/* Notifikasi */}
       <Section icon={<Bell size={15} />} title={dict.notifications}>
         <div className="space-y-2 p-4">
           <Toggle label={dict.notifEnabled} checked={s.notificationsEnabled} onChange={(v) => { set("notificationsEnabled", v); if (v) void requestPermission().then((p) => { if (p === "denied") toast.error("Izin notifikasi ditolak. Aktifkan lewat Pengaturan HP → Aplikasi → Budgeto → Notifikasi."); }); }} />
@@ -181,7 +173,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         </div>
       </Section>
 
-      {/* ── Data & backup ── */}
+      {/* Data & backup */}
       <Section icon={<DatabaseBackup size={15} />} title={dict.dataBackup}>
         <div className="space-y-2.5 p-4">
           <p className="rounded-xl bg-surface2 p-2.5 text-[10px] leading-relaxed text-muted-foreground">
@@ -225,7 +217,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         </div>
       </Section>
 
-      {/* ── Cloud opsional ── */}
+      {/* Cloud opsional */}
       <Section icon={<CloudUpload size={15} />} title={dict.cloud}>
         <div className="space-y-2.5 p-4">
           <p className="text-[10px] leading-relaxed text-muted-foreground">{dict.cloudDesc}</p>
@@ -266,7 +258,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
         </div>
       </Section>
 
-      {/* ── Zona berbahaya ── */}
+      {/* Zona berbahaya */}
       <Section icon={<TriangleAlert size={15} />} title={dict.danger} danger>
         <div className="space-y-2 p-4">
           <p className="text-[10px] leading-relaxed text-muted-foreground">{dict.resetAllDesc}</p>
@@ -278,7 +270,7 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
                 toast.success("✓");
               } else if (phrase !== null) toast.error(dict.wrongPin);
             }}
-            className="w-full rounded-xl bg-bad/10 py-2.5 text-xs font-extrabold text-bad ring-1 ring-bad/30"
+            className="w-full rounded-xl bg-bad/10 py-2.5 text-xs font-semibold text-bad ring-1 ring-bad/30"
           >
             {dict.resetAll}
           </button>
@@ -366,13 +358,14 @@ function SchemaCard({ schema, active, onSelect }: { schema: (typeof THEME_SCHEMA
       aria-pressed={active}
       className={cn(
         "relative overflow-hidden rounded-2xl p-3 text-left transition-all duration-200 active:scale-[0.97]",
-        active ? "ring-2 ring-primary shadow-md" : "ring-1 ring-border hover:shadow-sm"
+        active ? "ring-2 ring-primary" : "ring-1 ring-border"
       )}
       style={{ backgroundColor: p.bg }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-extrabold" style={{ color: p.text }}>
-          {schema.emoji} {schema.label}
+        <span className="text-[12px] font-semibold" style={{ color: p.text }}>
+          <span className="mr-1.5 inline-block h-2 w-2 rounded-full align-middle" style={{ backgroundColor: p.accent }} />
+          {schema.label}
         </span>
         {active && (
           <span className="flex h-4 w-4 items-center justify-center rounded-full" style={{ backgroundColor: p.accent }}>
@@ -430,7 +423,7 @@ function CloudLogin({ dict, onDone, otpSent, setOtpSent }: {
       <button
         disabled={!email.includes("@") || busy}
         onClick={async () => { setBusy(true); const r = await sendOtp(email); if (r.ok) { toast.success(r.message); setOtpSent(true); } else toast.error(r.message); setBusy(false); }}
-        className="w-full rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+        className="w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
       >
         {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : dict.sendOtp}
       </button>
@@ -438,11 +431,11 @@ function CloudLogin({ dict, onDone, otpSent, setOtpSent }: {
   }
   return (
     <div className="space-y-2">
-      <input value={token} onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder={dict.otpCode} inputMode="numeric" className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-center text-sm font-extrabold tracking-[0.3em] outline-none ring-1 ring-border" />
+      <input value={token} onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder={dict.otpCode} inputMode="numeric" className="w-full rounded-xl bg-surface2 px-3 py-2.5 text-center text-sm font-semibold tracking-[0.3em] outline-none ring-1 ring-border" />
       <button
         disabled={token.length < 6 || busy}
         onClick={async () => { setBusy(true); const r = await verifyOtp(email, token); if (r.ok) { toast.success(r.message); onDone(email); } else toast.error(r.message); setBusy(false); }}
-        className="w-full rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+        className="w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
       >
         {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : dict.verify}
       </button>
@@ -450,7 +443,7 @@ function CloudLogin({ dict, onDone, otpSent, setOtpSent }: {
   );
 }
 
-// ─── Keamanan: PIN setup / remove, auto-lock, privasi, biometrik flag ──
+// Bagian keamanan
 function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
   const s = useSettings();
   const set = useSettings((x) => x.set);
@@ -472,7 +465,7 @@ function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
               placeholder={dict.enterPin}
               inputMode="numeric"
               type="password"
-              className="w-full rounded-xl bg-card px-3 py-2.5 text-center text-sm font-extrabold tracking-[0.35em] outline-none ring-1 ring-border"
+              className="w-full rounded-xl bg-card px-3 py-2.5 text-center text-sm font-semibold tracking-[0.35em] outline-none ring-1 ring-border"
             />
             <input
               value={pin2}
@@ -480,7 +473,7 @@ function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
               placeholder={dict.confirmPin}
               inputMode="numeric"
               type="password"
-              className="w-full rounded-xl bg-card px-3 py-2.5 text-center text-sm font-extrabold tracking-[0.35em] outline-none ring-1 ring-border"
+              className="w-full rounded-xl bg-card px-3 py-2.5 text-center text-sm font-semibold tracking-[0.35em] outline-none ring-1 ring-border"
             />
             <button
               disabled={pin1.length < 4 || pin1 !== pin2 || busy}
@@ -493,7 +486,7 @@ function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
                 toast.success("✓");
                 setBusy(false);
               }}
-              className="w-full rounded-xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+              className="w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
             >
               {busy ? <Loader2 size={13} className="mx-auto animate-spin" /> : "✓"}
             </button>
@@ -531,7 +524,7 @@ function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
                       toast.success("✓");
                     } else if (phrase !== null) toast.error(dict.wrongPin);
                   }}
-                  className="w-full rounded-xl bg-bad/15 py-2 text-[11px] font-extrabold text-bad"
+                  className="w-full rounded-xl bg-bad/15 py-2 text-[11px] font-semibold text-bad"
                 >
                   {dict.resetPinData}
                 </button>

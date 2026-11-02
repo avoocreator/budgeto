@@ -1,10 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Layar kunci (F07)
-// Papan PIN; gagal beberapa kali tetap bisa coba lagi (fallback
-// pemulihan lewat alur "Lupa PIN" di Pengaturan).
-// Isi app tidak dirender di bawahnya (gate di AppShell).
-// ============================================================
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -59,7 +52,7 @@ export function LockScreen() {
         <span className={cn("flex h-16 w-16 items-center justify-center rounded-[22px] bg-primary/12 text-primary", wrong && "bg-bad/12 text-bad")}>
           <ShieldCheck size={28} />
         </span>
-        <h1 className="pt-4 text-lg font-extrabold tracking-tight">Budgeto</h1>
+        <h1 className="pt-4 text-lg font-semibold tracking-tight">Budgeto</h1>
         <p className={cn("mt-1 text-xs font-semibold", wrong ? "text-bad" : "text-muted-foreground")}>
           {wrong ? "PIN salah" : "Masukkan PIN"}
         </p>

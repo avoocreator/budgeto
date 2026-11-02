@@ -1,13 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Transaksi berulang & pengingat tagihan (F06)
-// - mode "auto": transaksi dibuat otomatis saat jatuh tempo
-// - mode "confirm": masuk daftar "Tagihan menunggu konfirmasi"
-// - App lama tidak dibuka → semua jatuh tempo yang terlewat
-//   diproses SEKALI, tanpa duplikat (lastPostedDate + iterasi terbatas).
-// - Edit aturan hanya berlaku ke depan (transaksi tercatat tak disentuh).
-// - Tanggal 29–31 aman: clamp ke hari terakhir bulan.
-// ============================================================
-
 import { db, uid } from "./db";
 import type { RecurringRule, PendingBill, Transaction } from "./types";
 import { todayStr, addDays } from "./format";

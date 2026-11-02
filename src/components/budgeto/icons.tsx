@@ -1,12 +1,9 @@
-// ============================================================
-// BUDGETO v3 — Registry ikon lucide (nama di DB → komponen)
-// ============================================================
-
 import {
   Utensils, Car, ShoppingBag, Clapperboard, HeartPulse, Zap, Coffee, ShoppingCart,
   GraduationCap, House, Shapes, Wallet, Laptop, TrendingUp, Gift, Sparkles, Banknote,
   Smartphone, Landmark, PiggyBank, CreditCard, Bus, Gamepad2, Shirt, Music, Baby, PawPrint,
   Dumbbell, Plane, BookOpen, Briefcase, Wrench, Stethoscope, Wifi, Droplets, Popcorn,
+  CalendarClock, Repeat,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +17,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   baby: Baby, "paw-print": PawPrint, dumbbell: Dumbbell, plane: Plane, "book-open": BookOpen,
   briefcase: Briefcase, wrench: Wrench, stethoscope: Stethoscope, wifi: Wifi,
   droplets: Droplets, popcorn: Popcorn, trending: TrendingUp,
+  "calendar-clock": CalendarClock, repeat: Repeat,
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);

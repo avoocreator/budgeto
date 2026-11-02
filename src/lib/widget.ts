@@ -3,7 +3,7 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { db } from "./db";
 import type { WidgetSnapshot, DailyStatus } from "./types";
-import { computeDailyRemaining, totalBalance, budgetProgressList } from "./money";
+import { computeDailyRemaining, totalBalance, budgetProgressList, periodSummary } from "./money";
 import { currentPeriod, periodLabel } from "./period";
 import { todayStr } from "./format";
 import { useSettings } from "./settings";
@@ -12,23 +12,22 @@ import { resolveIsDark, resolvePalette, type ThemePalette } from "./themes";
 
 const SNAPSHOT_KEY = "budgeto-widget-snapshot";
 
-// Plugin native (WidgetBridgePlugin.java) — hanya ada di APK
+// Plugin native (WidgetBridgePlugin.java) — hanya di APK
 const WidgetBridge = registerPlugin<{ push(options: { snapshot: string }): Promise<void> }>("WidgetBridge");
 
-export function buildSnapshot(themeModeOverride?: "light" | "dark"): WidgetSnapshot {
+export async function buildSnapshot(themeModeOverride?: "light" | "dark"): Promise<WidgetSnapshot> {
   const s = useSettings.getState();
   const lang = useLang.getState().lang;
   const t = require0(lang);
 
-  // baca data sinkron (dipanggil setelah penulisan Dexie selesai)
-  return buildSnapshotAsync(t, s, themeModeOverride) as unknown as WidgetSnapshot;
+  return buildSnapshotAsync(t, s, themeModeOverride);
 }
 
-// --- helper: kamus label untuk snapshot (sinkron, tanpa import melingkar) ---
+// Label snapshot per bahasa
 function require0(lang: "id" | "en"): Record<string, string> {
   return lang === "id"
-    ? { today: "Sisa hari ini", balance: "Saldo", budget: "Budget", addExpense: "+ Pengeluaran", addIncome: "+ Pemasukan", updated: "diperbarui" }
-    : { today: "Today's allowance", balance: "Balance", budget: "Budget", addExpense: "+ Expense", addIncome: "+ Income", updated: "updated" };
+    ? { today: "Sisa aman", balance: "Total saldo", budget: "Budget", addExpense: "− Keluar", addIncome: "+ Masuk", updated: "diperbarui" }
+    : { today: "Safe to spend", balance: "Total balance", budget: "Budget", addExpense: "− Expense", addIncome: "+ Income", updated: "updated" };
 }
 
 async function buildSnapshotAsync(
@@ -41,14 +40,13 @@ async function buildSnapshotAsync(
   ]);
   const period = currentPeriod(s.periodMode, s.payday);
   const daily = computeDailyRemaining({ txs, budgets, rules, period });
-  const balance = totalBalance(txs, wallets);
+  const balance = totalBalance(txs, wallets.filter((w) => !w.deleted));
+  const flow = periodSummary(txs, period);
   const progresses = budgetProgressList(budgets, txs, period);
   const totalBudget = progresses.reduce((sum, p) => sum + p.budget.amount, 0);
   const usedPercent = totalBudget > 0 ? Math.round((daily.spent / totalBudget) * 100) : 0;
   const dark: boolean = themeModeOverride ? themeModeOverride === "dark" : resolveIsDark(s.themeMode);
 
-  // Palet final (schema + mode + tone) — dikirim ke widget agar tampilan
-  // widget 100% mengikuti tema aplikasi.
   const palette = resolvePalette(s.themeSchema, dark, s.tone);
 
   return {
@@ -63,6 +61,7 @@ async function buildSnapshotAsync(
       untilDate: period.end,
     },
     budget: { usedPercent: Math.max(0, usedPercent) },
+    period: { income: Math.round(flow.income), expense: Math.round(flow.expense) },
     balance: Math.round(balance),
     labels: {
       today: labels.today,
@@ -84,7 +83,6 @@ function paletteToColors(p: ThemePalette) {
   };
 }
 
-/** Hitung & kirim snapshot ke widget. Cepat, tanpa jaringan. */
 export async function pushWidgetSnapshot(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
@@ -94,15 +92,13 @@ export async function pushWidgetSnapshot(): Promise<void> {
     const snap = await buildSnapshotAsync(labels, s);
     const json = JSON.stringify(snap);
 
-    // 1) localStorage — fallback + sumber untuk widget preview
     localStorage.setItem(SNAPSHOT_KEY, json);
 
-    // 2) APK: kirim ke widget lewat plugin WidgetBridge
     if (Capacitor.isNativePlatform()) {
-      try { await WidgetBridge.push({ snapshot: json }); } catch { /* widget belum siap — abaikan */ }
+      try { await WidgetBridge.push({ snapshot: json }); } catch { /* plugin belum siap */ }
     }
   } catch {
-    // snapshot gagal — app tetap berjalan
+    // abaikan jika snapshot gagal
   }
 }
 

@@ -1,12 +1,3 @@
-// ============================================================
-// BUDGETO v3 — Sinkronisasi Cloud (Supabase, OPSIONAL — app 100% jalan offline)
-// - Login email OTP; RLS memastikan tiap pengguna hanya melihat datanya
-// - Delta sync berdasarkan updatedAt; soft delete (`deleted`) ikut tersync
-// - Konflik: Last-Write-Wins (updatedAt terbaru menang)
-// - Offline: antrean = debounce; dikirim saat koneksi kembali
-// - Skema tabel mengikuti supabase-schema.sql + recurring_rules (v3)
-// ============================================================
-
 "use client";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -112,7 +103,7 @@ export async function getSessionEmail(): Promise<string | null> {
   }
 }
 
-// ─── SYNC ENGINE ─────────────────────────────────────────────
+// Sinkronisasi tabel
 async function pushTable(name: TableName, c: SupabaseClient, userId: string, since: number): Promise<void> {
   const all = await dexieTable(name).toArray();
   const rows = all
