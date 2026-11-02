@@ -36,11 +36,9 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Token tema fallback */
 :root {
   --radius: 1rem;
 
-  /* Token semantik terang */
   --bg: #f3f5f4;
   --surface: #ffffff;
   --surface-2: #f3f5f4;
@@ -53,11 +51,9 @@
   --status-warn: #b86e00;
   --status-bad: #d92d43;
 
-  /* Aksen default */
   --accent-t: #12814f;
   --accent-contrast-t: #ffffff;
 
-  /* Pemetaan ke shadcn */
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface);
@@ -114,7 +110,6 @@
   --ring: var(--accent-t);
 }
 
-/* Preset aksen fallback */
 [data-accent="emerald"], [data-schema="emerald"] { --accent-t: #12814f; --accent-contrast-t: #ffffff; }
 [data-accent="emerald"].dark, [data-schema="emerald"].dark { --accent-t: #3ecf8e; --accent-contrast-t: #04241a; }
 [data-accent="ocean"],    [data-schema="aqua"]     { --accent-t: #0e7490; --accent-contrast-t: #ffffff; }
@@ -140,12 +135,10 @@
   button { -webkit-tap-highlight-color: transparent; }
 }
 
-/* ── utilitas kecil ── */
 .thin-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
 .thin-scroll::-webkit-scrollbar-thumb { background: var(--border-t); border-radius: 8px; }
 .thin-scroll { scrollbar-width: thin; scrollbar-color: var(--border-t) transparent; }
 
-/* Animasi — hanya transisi masuk yang halus (hormati "kurangi animasi") */
 @media (prefers-reduced-motion: no-preference) {
   .anim-rise { animation: rise 0.22s ease-out both; }
   .anim-sheet { animation: sheetup 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -170,13 +163,11 @@
 }
 .popnum { animation: popnum 0.18s ease-out; }
 
-/* Angka utama besar */
 .big-number {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
-/* Slider tone */
 .tone-slider {
   background: linear-gradient(
     to right,

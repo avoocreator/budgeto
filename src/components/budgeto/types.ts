@@ -1,4 +1,3 @@
-// Tipe tampilan untuk navigasi internal AppShell
 export type View =
   | "dashboard"
   | "transactions"

@@ -18,13 +18,11 @@ import {
   Minus, Plus, Wallet as WalletIcon, Wallet2, PiggyBank,
 } from "lucide-react";
 
-// Helper
 function monthShort(date: string, lang: Lang): string {
   const [y, m] = date.split("-").map(Number);
   return new Intl.DateTimeFormat(localeOf(lang), { month: "short" }).format(new Date(y, m - 1, 1));
 }
 
-/** "1 Nov – 30 Nov" (tanpa tahun, muat di pill kecil). */
 function periodShort(p: Period, lang: Lang): string {
   const sd = Number(p.start.split("-")[2]);
   const ed = Number(p.end.split("-")[2]);
@@ -37,13 +35,11 @@ function daysUntil(dateStr: string): number {
   return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86_400_000);
 }
 
-/** Persen perubahan; null bila periode pembanding kosong (tidak bisa dibandingkan). */
 function pctChange(cur: number, prev: number): number | null {
   if (prev <= 0) return null;
   return ((cur - prev) / prev) * 100;
 }
 
-/** Label sumbu Y ringkas: 0, 500rb, 1,5jt … */
 function axisMoney(v: number, lang: Lang): string {
   if (v === 0) return "0";
   const trim = (n: number) => String(Math.round(n * 10) / 10).replace(".", lang === "id" ? "," : ".");
@@ -56,7 +52,6 @@ function axisMoney(v: number, lang: Lang): string {
 interface TrendPoint { label: string; range: string; income: number; expense: number }
 type FlowSeries = "expense" | "income";
 
-// Dashboard
 export function DashboardView({
   go, onEditTx, onAdd,
 }: {
@@ -118,13 +113,11 @@ export function DashboardView({
       }[daily.status])
     : "";
 
-  // dompet: 4 pertama tampil di kartu saldo
   const walletRows = wallets.map((w) => ({ w, bal: walletBalance(w.id, txs, wallets) }));
   const shownWallets = walletRows.slice(0, 4);
   const hiddenWallets = Math.max(0, walletRows.length - shownWallets.length);
   const walletName = new Map<string, string>(wallets.map((w: Wallet) => [w.id, w.name]));
 
-  // arus kas 6 periode terakhir (periode berjalan = batang paling kanan)
   const trend: TrendPoint[] = Array.from({ length: 6 }, (_, i) => {
     const p = shiftPeriod(period, i - 5, periodMode, payday);
     const s = periodSummary(txs, p);
@@ -470,7 +463,6 @@ export function DashboardView({
   );
 }
 
-// Komponen pendukung
 function CardHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
@@ -516,7 +508,6 @@ function FlowStat({
   );
 }
 
-// Baris tabel transaksi desktop
 function TxTableRow({
   tx, cats, walletName, onEdit,
 }: { tx: Transaction; cats: Category[]; walletName: Map<string, string>; onEdit: () => void }) {
@@ -556,7 +547,6 @@ function TxTableRow({
   );
 }
 
-// Baris transaksi
 export function TxRow({
   tx, cats, onEdit, flat,
 }: { tx: Transaction; cats: Category[]; onEdit?: () => void; flat?: boolean }) {

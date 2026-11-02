@@ -286,7 +286,6 @@ function sLangOf(l: "id" | "en"): "id" | "en" { return l; }
 function idDict() { return DICT_ID; }
 function enDict() { return DICT_EN; }
 
-// kamus lokal ringkas (hindari import melingkar dengan i18n)
 const DICT_ID = {
   settings: "Pengaturan", appearance: "Tampilan", themeMode: "Mode", system: "Ikut sistem", light: "Terang", dark: "Gelap",
   themeSchema: "Schema warna", tone: "Tone warna", accent: "Warna aksen", language: "Bahasa", periodPayday: "Periode & tanggal gajian", periodMode: "Aturan periode",
@@ -346,7 +345,6 @@ function Section({ icon, title, children, danger }: { icon: React.ReactNode; tit
   );
 }
 
-/** Kartu pilihan schema warna dengan pratinjau mini (bg + aksen + in/out). */
 function SchemaCard({ schema, active, onSelect }: { schema: (typeof THEME_SCHEMAS)[number]; active: boolean; onSelect: () => void }) {
   const lang = useLang((x) => x.lang);
   const mode = useSettings((x) => x.themeMode);
@@ -443,7 +441,6 @@ function CloudLogin({ dict, onDone, otpSent, setOtpSent }: {
   );
 }
 
-// Bagian keamanan
 function SecuritySection({ dict }: { dict: typeof DICT_ID }) {
   const s = useSettings();
   const set = useSettings((x) => x.set);

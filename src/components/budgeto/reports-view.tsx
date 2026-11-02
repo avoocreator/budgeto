@@ -28,11 +28,9 @@ export function ReportsView() {
   const loading = txs === undefined;
   const data = useMemo(() => activeTxs(txs ?? []), [txs]);
 
-  // Agregat periode
   const curSum = useMemo(() => sumPeriod(data, cur), [data, cur]);
   const prevSum = useMemo(() => sumPeriod(data, prev), [data, prev]);
 
-  // Tren 6 periode
   const trend = useMemo(() => {
     const arr: { label: string; income: number; expense: number }[] = [];
     for (let i = -5; i <= 0; i++) {
@@ -44,7 +42,6 @@ export function ReportsView() {
     return arr;
   }, [data, cur, periodMode, payday, lang]);
 
-  // Komposisi kategori
   const catData = useMemo(() => {
     const map = spentByCategory(data, cur);
     return Array.from(map.entries())
@@ -53,7 +50,6 @@ export function ReportsView() {
       .slice(0, 8);
   }, [data, cur, cats]);
 
-  // Aktivitas harian
   const dailyData = useMemo(() => {
     const arr: { day: string; expense: number; income: number }[] = [];
     let d = cur.start;
@@ -78,7 +74,6 @@ export function ReportsView() {
   const fmt = (v: number) => formatMoney(v, lang, { compact: true });
   const hasData = data.length > 0;
 
-  // Insight data
   const expenseDelta = prevSum.expense > 0 ? ((curSum.expense - prevSum.expense) / prevSum.expense) * 100 : 0;
   const top = topCategoryName(spentByCategory(data, cur), cats ?? []);
   const insightExpense = prevSum.expense > 0
@@ -194,7 +189,6 @@ const tooltipStyle = {
   color: "var(--text)",
 };
 
-/** Agregat pemasukan/pengeluaran dalam satu periode (murni). */
 function sumPeriod(data: import("@/lib/types").Transaction[], p: import("@/lib/types").Period): { income: number; expense: number } {
   let income = 0, expense = 0;
   for (const t of data) {

@@ -12,7 +12,6 @@ import { resolveIsDark, resolvePalette, type ThemePalette } from "./themes";
 
 const SNAPSHOT_KEY = "budgeto-widget-snapshot";
 
-// Plugin native (WidgetBridgePlugin.java) — hanya di APK
 const WidgetBridge = registerPlugin<{ push(options: { snapshot: string }): Promise<void> }>("WidgetBridge");
 
 export async function buildSnapshot(themeModeOverride?: "light" | "dark"): Promise<WidgetSnapshot> {
@@ -23,7 +22,6 @@ export async function buildSnapshot(themeModeOverride?: "light" | "dark"): Promi
   return buildSnapshotAsync(t, s, themeModeOverride);
 }
 
-// Label snapshot per bahasa
 function require0(lang: "id" | "en"): Record<string, string> {
   return lang === "id"
     ? { today: "Sisa aman", balance: "Total saldo", budget: "Budget", addExpense: "− Keluar", addIncome: "+ Masuk", updated: "diperbarui" }
@@ -98,7 +96,7 @@ export async function pushWidgetSnapshot(): Promise<void> {
       try { await WidgetBridge.push({ snapshot: json }); } catch { /* plugin belum siap */ }
     }
   } catch {
-    // abaikan jika snapshot gagal
+    /* abaikan */
   }
 }
 

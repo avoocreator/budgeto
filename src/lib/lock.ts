@@ -75,7 +75,6 @@ export const useLock = create<LockState>()((set, get) => ({
   resetAttempts: () => set({ attempts: 0 }),
 }));
 
-/** Dipasang sekali di AppShell: kunci saat pertama buka (jika aktif) + pantau visibilitas. */
 export function installLockWatch(): () => void {
   const { lockEnabled } = useSettings.getState();
   if (lockEnabled) useLock.getState().lock();

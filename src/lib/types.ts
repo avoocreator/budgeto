@@ -60,14 +60,12 @@ export interface Goal {
   deleted?: boolean;
 }
 
-// Transaksi berulang
 export type Frequency = "weekly" | "monthly";
 
-/** Tagihan menunggu konfirmasi (mode "confirm") */
 export interface PendingBill {
   id: string;
   ruleId: string;
-  dueDate: string; // YYYY-MM-DD
+  dueDate: string;
   amount: number;
   createdAt: number;
 }
@@ -80,14 +78,14 @@ export interface RecurringRule {
   categoryId: string;
   walletId: string;
   frequency: Frequency;
-  dayOfMonth?: number; // 1-31 untuk monthly (29-31 di-clamp ke akhir bulan)
-  weekday?: number; // 0-6 untuk weekly
-  nextDate: string; // YYYY-MM-DD jatuh tempo berikutnya
-  mode: "auto" | "confirm"; // auto = langsung dicatat; confirm = minta konfirmasi
-  remindDaysBefore: number; // default 1 (H-1)
+  dayOfMonth?: number;
+  weekday?: number;
+  nextDate: string;
+  mode: "auto" | "confirm";
+  remindDaysBefore: number;
   active: boolean;
-  lastPostedDate?: string | null; // guard duplikat
-  pending: PendingBill[]; // tagihan menunggu konfirmasi
+  lastPostedDate?: string | null;
+  pending: PendingBill[];
   createdAt: number;
   updatedAt: number;
   deleted?: boolean;
@@ -99,12 +97,11 @@ export interface SettingRow {
   updatedAt: number;
 }
 
-// Periode & dashboard
 export type PeriodMode = "calendar" | "payday";
 
 export interface Period {
-  start: string; // YYYY-MM-DD inklusif
-  end: string; // YYYY-MM-DD inklusif
+  start: string;
+  end: string;
 }
 
 export type DailyStatus = "ok" | "warn" | "bad";
@@ -112,17 +109,16 @@ export type DailyStatus = "ok" | "warn" | "bad";
 export interface DailyRemaining {
   amount: number;
   status: DailyStatus;
-  ready: boolean; // false jika budget/payday belum diatur → tampilkan ajakan
+  ready: boolean;
   period: Period;
   remainingDays: number;
   remainingBudget: number;
   upcomingBills: number;
   periodBudget: number;
   spent: number;
-  dailyTarget: number; // rata-rata harian budget
+  dailyTarget: number;
 }
 
-// Snapshot widget
 export interface WidgetThemeColors {
   bg: string;
   surface: string;
@@ -145,16 +141,12 @@ export interface WidgetSnapshot {
   privacy: boolean;
   theme: {
     mode: "light" | "dark";
-    /** legacy preset id (emerald | ocean | …) — untuk APK lama */
     preset: string;
-    /** schema tema baru (mocha | emerald | aqua | sunset | lavender) */
     schemaId?: string;
-    /** warna final (sudah termasuk tone) — untuk APK v2 */
     colors?: WidgetThemeColors;
   };
   daily: { amount: number; status: DailyStatus | "none"; untilDate: string | null };
   budget: { usedPercent: number };
-  /** v4: pemasukan & pengeluaran periode berjalan (info pendukung di widget) */
   period?: { income: number; expense: number };
   balance: number;
   labels: {
@@ -177,13 +169,11 @@ export interface AppData {
   settings: SettingRow[];
 }
 
-// Palet warna kategori/dompet (kontras aman di light & dark)
 export const PALETTE = [
   "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4",
   "#ec4899", "#84cc16", "#f97316", "#14b8a6", "#a855f7",
 ] as const;
 
-// legacy (dipertahankan untuk kompatibilitas — digunakan migrasi settings)
 export const ACCENT_PRESETS = [
   { id: "emerald", label: "Emerald", swatch: "#34D399" },
   { id: "ocean", label: "Ocean", swatch: "#22d3ee" },

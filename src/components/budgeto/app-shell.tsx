@@ -61,7 +61,6 @@ export function AppShell() {
   const rules = useLiveQuery(() => db.recurringRules.toArray(), []);
   const wallets = useLiveQuery(() => db.wallets.filter((w) => !w.deleted).toArray(), []);
 
-  // Inisialisasi awal
   useEffect(() => {
     void seedIfEmpty();
     void ensureSw();
@@ -75,7 +74,6 @@ export function AppShell() {
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
 
-    // Deep link PWA
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "add") {
       const t = params.get("type");
@@ -91,7 +89,6 @@ export function AppShell() {
       window.history.replaceState({}, "", "/");
     }
 
-    // Deep link APK
     const cap = (window as unknown as { Capacitor?: { Plugins?: { App?: { addListener: (ev: string, cb: (d: { url: string }) => void) => void } } } }).Capacitor;
     const appPlugin = cap?.Plugins?.App;
     if (appPlugin?.addListener) {
@@ -115,7 +112,6 @@ export function AppShell() {
     };
   }, []);
 
-  // Cek tagihan jatuh tempo & update snapshot
   useEffect(() => {
     if (!hydrated || !onboarded) return;
     (async () => {
@@ -137,7 +133,6 @@ export function AppShell() {
     })();
   }, [hydrated, onboarded]);
 
-  // Pembaruan widget harian
   useEffect(() => {
     if (!hydrated || !onboarded) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -151,20 +146,16 @@ export function AppShell() {
     return () => clearInterval(timer);
   }, [hydrated, onboarded]);
 
-  // Minta izin notifikasi saat app dibuka (default setting = aktif, jadi izin harus diminta otomatis).
-  // Aman dipanggil berulang: dialog sistem hanya muncul bila izin masih "prompt".
   useEffect(() => {
     if (!hydrated || !onboarded || !notificationsEnabled) return;
     void requestPermission();
   }, [hydrated, onboarded, notificationsEnabled]);
 
-  // Pengingat harian (dibatalkan otomatis di APK bila dimatikan)
   useEffect(() => {
     if (!hydrated) return;
     scheduleDailyReminder(reminderTime, notificationsEnabled && dailyReminder);
   }, [hydrated, notificationsEnabled, dailyReminder, reminderTime]);
 
-  // Scroll ke atas saat ganti view
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [tab, subView]);
@@ -198,9 +189,7 @@ export function AppShell() {
     );
   }
 
-  // Gate 1: onboarding
   if (!onboarded) return <Onboarding />;
-  // Gate 2: kunci layar
   if (lockEnabled && locked) return <LockScreen />;
 
   const navItems: { key: TabKey; label: string; icon: typeof Home }[] = [
@@ -361,7 +350,6 @@ function greetingFor(id: boolean): string {
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
 
-// Sidebar desktop
 type SideItem = { view: View; label: string; icon: typeof Home };
 
 function Sidebar({ current, go, id, sync }: { current: View; go: (v: View) => void; id: boolean; sync: { state: string; message: string } }) {

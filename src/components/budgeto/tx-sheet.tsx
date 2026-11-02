@@ -44,7 +44,6 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
 
   const isEdit = !!state.edit;
 
-  // Reset saat sheet dibuka / jenis berubah
   useEffect(() => {
     if (!state.open) return;
     const t = state.edit ? state.edit.type : state.prefillType ?? "expense";
@@ -64,7 +63,6 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
     }
   }, [state.open, state.prefillType, state.edit, lastWalletId, wallets]);
 
-  // Saran kategori (F02) — teratas terpilih otomatis
   useEffect(() => {
     if (!state.open || type === "transfer") return;
     void suggestCategories(type as "income" | "expense", note).then(({ ranked, top }) => {
@@ -105,7 +103,6 @@ export function TransactionSheet({ state, onClose }: { state: TxSheetState; onCl
         date,
         note,
       });
-      // getar ringan + animasi sukses sebelum sheet tertutup (design.md §5)
       navigator.vibrate?.(18);
       setSavedFx(true);
       setTimeout(() => { onClose(); setSavedFx(false); }, 640);

@@ -11,7 +11,6 @@ export function activeTxs(txs: Transaction[]): Transaction[] {
   return txs.filter((t) => !t.deleted);
 }
 
-/** Saldo satu dompet = saldo awal + pemasukan - pengeluaran + masuk transfer - keluar transfer. */
 export function walletBalance(walletId: string, txs: Transaction[], wallets: Wallet[]): number {
   const w = wallets.find((x) => x.id === walletId);
   let bal = w?.initialBalance ?? 0;
@@ -72,38 +71,29 @@ export function budgetProgressList(budgets: Budget[], txs: Transaction[], p: Per
     });
 }
 
-/** Total tagihan berulang (expense) yang belum tercatat & jatuh tempo dalam periode. */
 export function upcomingBillsInPeriod(rules: RecurringRule[], p: Period, today: string = todayStr()): number {
   let total = 0;
   for (const r of rules) {
     if (r.deleted || !r.active || r.type !== "expense") continue;
-    // tagihan yang menunggu konfirmasi juga ikut dikurangkan
     for (const pb of r.pending) {
       if (pb.dueDate <= p.end) total += pb.amount;
     }
     const nd = r.nextDate;
     if (nd && nd <= p.end && nd >= p.start) {
-      // jatuh tempo di dalam periode & belum diposting (mode auto mem-post saat proses berjalan)
       total += r.amount;
     } else if (nd && nd <= today && nd >= p.start) {
-      total += 0; // sudah diproses engine
+      total += 0;
     }
   }
   return total;
 }
 
-/** Ambang status (design.md): ok ≥70% target harian, warn 30–70%, bad <30% / negatif. */
 export function statusFromRatio(ratio: number, negative: boolean): DailyStatus {
   if (negative || ratio < 0.3) return "bad";
   if (ratio < 0.7) return "warn";
   return "ok";
 }
 
-/**
- * F01 — Sisa harian:
- * sisa_harian = (sisa_budget_periode − tagihan_berulang_belum_jatuh_tempo) / sisa_hari_periode
- * Skenario uji: 1.500.000 budget, 600.000 terpakai, 10 hari, tagihan 100.000 → 80.000.
- */
 export function computeDailyRemaining(input: {
   txs: Transaction[];
   budgets: Budget[];

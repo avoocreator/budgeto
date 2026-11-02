@@ -15,8 +15,6 @@ export function LockScreen() {
   const [wrong, setWrong] = useState(false);
   const [checking, setChecking] = useState(false);
 
-  // Verifikasi via effect (kebal batching klik cepat); setState di callback
-  // async, bukan langsung di body effect.
   useEffect(() => {
     if (!pinRecord || checking || wrong) return;
     if (input.length !== pinRecord.length) return;

@@ -31,7 +31,6 @@ export function uid(): string {
   return `${Date.now().toString(16).padStart(12, "0")}-4${Math.random().toString(16).slice(1, 12)}-a${Math.random().toString(16).slice(1, 12)}-b${Math.random().toString(16).slice(1, 12)}${Date.now().toString(16).slice(-4)}`;
 }
 
-// Seed data
 const DEFAULT_CATEGORIES: Omit<Category, "id" | "createdAt" | "updatedAt">[] = [
   { name: "Makan & Minum", type: "expense", icon: "utensils", color: "#f59e0b" },
   { name: "Transportasi", type: "expense", icon: "car", color: "#06b6d4" },

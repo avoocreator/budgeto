@@ -15,12 +15,10 @@ export function AccentSync() {
   const privacyMode = useSettings((s) => s.privacyMode);
   const { setTheme } = useTheme();
 
-  // Sumber kebenaran tema = settings store → terapkan ke next-themes (F03)
   useEffect(() => {
     setTheme(themeMode);
   }, [themeMode, setTheme]);
 
-  // Terapkan palet penuh (schema + mode + tone) ke CSS variables
   useEffect(() => {
     const apply = () => {
       const dark = resolveIsDark(themeMode);
@@ -46,7 +44,6 @@ export function AccentSync() {
   }, [themeMode]);
 
   useEffect(() => {
-    // snapshot ikut diperbarui saat schema/mode/tone/privasi berubah
     void pushWidgetSnapshot();
   }, [themeSchema, accent, themeMode, tone, privacyMode]);
 

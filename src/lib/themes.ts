@@ -16,15 +16,12 @@ export interface ThemePalette {
 export interface ThemeSchema {
   id: string;
   label: string;
-  /** emoji kecil untuk picker */
   emoji: string;
-  /** warna representatif untuk chip picker (mode gelap) */
   swatch: string;
   light: ThemePalette;
   dark: ThemePalette;
 }
 
-// Tema schema
 export const THEME_SCHEMAS: ThemeSchema[] = [
   {
     id: "mocha",
@@ -49,7 +46,6 @@ export const THEME_SCHEMAS: ThemeSchema[] = [
     label: "Emerald",
     emoji: "🌿",
     swatch: "#34D399",
-    // v4: netral bersih + hijau lebih dalam (kontras teks putih ≥ 4.5:1)
     light: {
       bg: "#f3f5f4", surface: "#ffffff", surface2: "#f3f5f4", border: "#e8ebe9",
       text: "#101613", textMuted: "#69736e",
@@ -121,14 +117,12 @@ export const THEME_SCHEMAS: ThemeSchema[] = [
 
 export const DEFAULT_SCHEMA = "emerald";
 
-/** Rentang tone: -100 (dingin/cool) … 0 (netral) … +100 (hangat/warm). */
 export type Tone = number;
 
 export function getSchema(id: string): ThemeSchema {
   return THEME_SCHEMAS.find((s) => s.id === id) ?? THEME_SCHEMAS[1];
 }
 
-// Util warna
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
@@ -144,7 +138,6 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${f(r)}${f(g)}${f(b)}`;
 }
 
-/** Campur hex a dengan hex b sebanyak pct (0–1). */
 export function mixHex(a: string, b: string, pct: number): string {
   try {
     const [r1, g1, b1] = hexToRgb(a);
@@ -155,21 +148,16 @@ export function mixHex(a: string, b: string, pct: number): string {
   }
 }
 
-/** Warna dengan alpha hex di depan, mis. tintHex("#fff", 0.2) → "#33FFFFFF". */
 export function alphaHex(hex: string, alpha: number): string {
   const a = Math.round(clamp(alpha, 0, 1) * 255).toString(16).padStart(2, "0").toUpperCase();
   const h = hex.toUpperCase();
   return `#${a}${h}`;
 }
 
-// Penyesuaian tone
-const WARM_TINT = "#ff9a56"; // oranye hangat
-const COOL_TINT = "#58a6ff"; // biru sejuk
-
-/** Kekuatan tint maksimum 14% — cukup terasa tanpa merusak keterbacaan. */
+const WARM_TINT = "#ff9a56";
+const COOL_TINT = "#58a6ff";
 const TONE_MAX = 0.14;
 
-/** Terapkan tone ke satu warna. tone>0 hangat, tone<0 dingin. */
 export function toned(hex: string, tone: Tone): string {
   const t = clamp(tone, -100, 100);
   if (t === 0) return hex;
@@ -177,11 +165,6 @@ export function toned(hex: string, tone: Tone): string {
   return mixHex(hex, t > 0 ? WARM_TINT : COOL_TINT, strength);
 }
 
-/**
- * Palet final = palet schema (light/dark) + tone yang diterapkan ke
- * permukaan (bg, surface, surface2, border). Warna teks & aksen
- * dibiarkan murni agar kontras tetap terjaga.
- */
 export function resolvePalette(schemaId: string, dark: boolean, tone: Tone): ThemePalette {
   const base = getSchema(schemaId)[dark ? "dark" : "light"];
   return {
@@ -200,7 +183,6 @@ export function resolvePalette(schemaId: string, dark: boolean, tone: Tone): The
   };
 }
 
-/** Terapkan palet sebagai CSS variables pada <html> (dipakai ThemeSync). */
 export function applyPalette(p: ThemePalette): void {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
@@ -219,7 +201,6 @@ export function applyPalette(p: ThemePalette): void {
   el.style.setProperty("--accent-contrast-t", p.accentContrast);
 }
 
-/** Mode gelap efektif dari settings (dipakai ThemeSync & widget). */
 export function resolveIsDark(mode: "light" | "dark" | "system"): boolean {
   if (mode === "dark") return true;
   if (mode === "light") return false;
@@ -227,7 +208,6 @@ export function resolveIsDark(mode: "light" | "dark" | "system"): boolean {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 }
 
-/** Label & deskripsi tone untuk UI pengaturan. */
 export function toneLabel(tone: Tone, lang: "id" | "en"): string {
   const t = clamp(tone, -100, 100);
   if (t <= -60) return lang === "id" ? "Sangat dingin" : "Very cool";

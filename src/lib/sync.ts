@@ -19,7 +19,6 @@ let syncing = false;
 const TABLES = ["transactions", "categories", "wallets", "budgets", "goals", "recurring_rules"] as const;
 type TableName = (typeof TABLES)[number];
 
-/** pemetaan tabel Dexie ↔ tabel Supabase (recurring_rules ↔ recurringRules) */
 function dexieTable(name: TableName) {
   const map = { recurring_rules: "recurringRules" } as Record<string, string>;
   return (db as unknown as Record<string, { toArray(): Promise<Record<string, unknown>[]>; put(v: Record<string, unknown>): Promise<unknown> }>)[map[name] ?? name];
@@ -103,7 +102,6 @@ export async function getSessionEmail(): Promise<string | null> {
   }
 }
 
-// Sinkronisasi tabel
 async function pushTable(name: TableName, c: SupabaseClient, userId: string, since: number): Promise<void> {
   const all = await dexieTable(name).toArray();
   const rows = all
@@ -163,7 +161,6 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
   }
 }
 
-/** Debounced auto-sync setelah perubahan data (hemat kuota: hanya delta). */
 export function scheduleSync(): void {
   const { cloudAutoSync, supabaseUrl, supabaseAnonKey } = useSettings.getState();
   if (!cloudAutoSync || !supabaseUrl || !supabaseAnonKey) return;
@@ -171,7 +168,6 @@ export function scheduleSync(): void {
   syncTimer = setTimeout(() => void syncNow(), 4000);
 }
 
-/** Dipanggil sekali saat app dibuka. */
 export function initSync(): void {
   const { supabaseUrl, supabaseAnonKey, cloudAutoSync } = useSettings.getState();
   if (!supabaseUrl || !supabaseAnonKey) {

@@ -5,7 +5,6 @@ import { daysInMonth } from "./format";
 import { notify, notifyAction } from "./notifications";
 import { useLang } from "./i18n";
 
-/** Jatuh tempo berikutnya setelah `fromDate` (inklusif? — eksklusif: tanggal berikutnya setelah tanggal acuan). */
 export function nextOccurrence(rule: RecurringRule, afterDate: string): string {
   const [ay, am, ad] = afterDate.split("-").map(Number);
   if (rule.frequency === "weekly") {
@@ -15,12 +14,10 @@ export function nextOccurrence(rule: RecurringRule, afterDate: string): string {
     if (delta === 0) delta = 7;
     return addDays(afterDate, delta);
   }
-  // monthly — clamp 29-31 ke panjang bulan
   const day = Math.max(1, rule.dayOfMonth ?? 1);
   let [ny, nm] = [ay, am];
   const effThis = Math.min(day, daysInMonth(ay, am));
   if (effThis > ad) {
-    // masih bisa jatuh tempo bulan ini
     return isoDate(ay, am, effThis);
   }
   [ny, nm] = nm === 12 ? [ay + 1, 1] : [ay, am + 1];
@@ -50,12 +47,6 @@ export function firstOccurrence(rule: Omit<RecurringRule, "nextDate" | "pending"
   return isoDate(ny, nm, Math.min(day, daysInMonth(ny, nm)));
 }
 
-/**
- * Proses semua aturan yang jatuh tempo. Dipanggil saat app dibuka,
- * setelah simpan transaksi, dan saat pergantian hari.
- * - auto → buat transaksi (untuk setiap occurence yang terlewat, max 120 iterasi)
- * - confirm → kumpulkan PendingBill per occurence
- */
 export async function processDueRules(): Promise<{ posted: number; pending: number }> {
   const today = todayStr();
   const rules = await db.recurringRules.toArray();
@@ -69,12 +60,10 @@ export async function processDueRules(): Promise<{ posted: number; pending: numb
     let changed = false;
     let guard = 0;
 
-    // mode auto: buat transaksi untuk setiap occurence terlewat
     let postedThisRule = 0;
     if (rule.mode === "auto") {
       while (next && next <= today && guard < 120) {
         guard++;
-        // guard duplikat: occurence yang sama (tanggal sama) tidak dibuat dua kali
         if (lastPosted !== next) {
           const tx: Transaction = {
             id: uid(),
@@ -100,7 +89,6 @@ export async function processDueRules(): Promise<{ posted: number; pending: numb
       }
     }
 
-    // mode confirm: kumpulkan tagihan menunggu (satu per occurence, max 12)
     if (rule.mode === "confirm") {
       while (next && next <= today && guard < 132) {
         guard++;
@@ -132,7 +120,6 @@ export async function processDueRules(): Promise<{ posted: number; pending: numb
   return { posted, pending };
 }
 
-/** Konfirmasi tagihan: buat transaksi, lanjutkan siklus. */
 export async function confirmPendingBill(ruleId: string, billId: string, amountOverride?: number): Promise<void> {
   const rule = await db.recurringRules.get(ruleId);
   if (!rule) return;
@@ -165,7 +152,6 @@ export async function confirmPendingBill(ruleId: string, billId: string, amountO
   );
 }
 
-/** Lewati tagihan tanpa mencatat. */
 export async function skipPendingBill(ruleId: string, billId: string): Promise<void> {
   const rule = await db.recurringRules.get(ruleId);
   if (!rule) return;
@@ -179,7 +165,6 @@ export function pendingBillCount(rules: RecurringRule[]): number {
   return rules.filter((r) => !r.deleted && r.active).reduce((s, r) => s + r.pending.length, 0);
 }
 
-/** Daftar tagihan yang akan datang (untuk dashboard "Tagihan terdekat"). */
 export function upcomingRules(rules: RecurringRule[], limit = 3): RecurringRule[] {
   return rules
     .filter((r) => !r.deleted && r.active)
@@ -187,7 +172,6 @@ export function upcomingRules(rules: RecurringRule[], limit = 3): RecurringRule[
     .slice(0, limit);
 }
 
-/** Cek pengingat H-N: kembalikan aturan yang jatuh tempo dalam N hari (untuk notifikasi). */
 export function rulesDueWithin(rules: RecurringRule[], days: number, today: string = todayStr()): RecurringRule[] {
   const until = addDays(today, days);
   return rules.filter((r) => !r.deleted && r.active && r.nextDate >= today && r.nextDate <= until);

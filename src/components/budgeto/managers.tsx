@@ -29,7 +29,6 @@ function SubHeader({ title, desc, onBack }: { title: string; desc: string; onBac
   );
 }
 
-// Budget
 export function BudgetsView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const periodMode = useSettings((s) => s.periodMode);
@@ -40,7 +39,6 @@ export function BudgetsView({ onBack }: { onBack: () => void }) {
 
   const [form, setForm] = useState<{ open: boolean; id?: string; categoryId: string; amount: string }>({ open: false, categoryId: "", amount: "" });
 
-  // hitung pakai periode aktif (F05)
   const spentMap = new Map<string, number>();
   const period = currentPeriod(periodMode, payday);
   for (const t of txs ?? []) {
@@ -137,7 +135,6 @@ export function BudgetsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// Dompet
 export function WalletsView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const wallets = useLiveQuery(() => db.wallets.filter((w) => !w.deleted).toArray(), []);
@@ -220,7 +217,6 @@ export function WalletsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// Target tabungan
 export function GoalsView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.deleted).toArray(), []);
@@ -333,7 +329,6 @@ export function GoalsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// Kategori
 export function CategoriesView({ onBack }: { onBack: () => void }) {
   const lang = useLang((s) => s.lang);
   const cats = useLiveQuery(() => db.categories.filter((c) => !c.deleted).toArray(), []);

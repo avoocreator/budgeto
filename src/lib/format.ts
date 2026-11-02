@@ -26,7 +26,6 @@ export function formatNumber(n: number, lang: Lang = "id"): string {
   return new Intl.NumberFormat(localeOf(lang)).format(n);
 }
 
-// Tanggal
 export function todayStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -37,7 +36,6 @@ export function nowTimeStr(): string {
   return `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/** offset bulan kalender terhadap hari ini (untuk laporan 6 bulan). */
 export function monthStr(offset = 0): string {
   const d = new Date();
   d.setDate(1);

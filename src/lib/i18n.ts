@@ -7,9 +7,7 @@ export type Lang = "id" | "en";
 
 const id = {
   appName: "Budgeto",
-  // Nav
   navHome: "Beranda", navTxs: "Transaksi", navReports: "Laporan", navMenu: "Menu",
-  // Dashboard
   dailyRemaining: "Sisa aman per hari",
   untilPayday: "sampai gajian",
   until: "sampai",
@@ -33,13 +31,11 @@ const id = {
   periodLabel: "Periode",
   daysLeft: "hari lagi",
   dayLeft: "hari lagi",
-  // Sisa harian detail
   breakdown: "Rincian sisa harian",
   remainingBudget: "Sisa budget periode",
   minusBills: "dikurangi tagihan belum jatuh tempo",
   dividedByDays: "dibagi sisa hari",
   dailyTarget: "Target harian budget",
-  // Quick add (F02)
   addExpense: "Pengeluaran",
   addIncome: "Pemasukan",
   addTransfer: "Transfer",
@@ -54,7 +50,6 @@ const id = {
   toWallet: "Ke dompet",
   savedTx: "Tercatat",
   lastWallet: "Terakhir dipakai",
-  // Transactions (F08)
   searchHint: "Cari catatan, kategori, dompet…",
   filter: "Filter",
   allTypes: "Semua jenis",
@@ -75,7 +70,6 @@ const id = {
   transfer: "Transfer",
   totalIn: "Masuk",
   totalOut: "Keluar",
-  // Budget
   budgets: "Budget",
   budgetsDesc: "Batas belanja per kategori, berlaku per periode",
   addBudget: "Tambah budget",
@@ -87,7 +81,6 @@ const id = {
   warning100: "Budget terlampaui (100%)",
   noBudgets: "Belum ada budget",
   noBudgetsHint: "Atur batas per kategori supaya sisa harian bisa dihitung",
-  // Wallets
   wallets: "Dompet",
   walletsDesc: "Tunai, bank, e-wallet — saldo dihitung dari transaksi",
   addWallet: "Tambah dompet",
@@ -95,7 +88,6 @@ const id = {
   walletName: "Nama dompet",
   transferMoney: "Transfer antar dompet",
   walletUsed: "dompet dipakai transaksi; akan diarsipkan",
-  // Goals
   goals: "Target Tabungan",
   goalsDesc: "Nabung untuk tujuan tertentu",
   addGoal: "Tambah target",
@@ -105,12 +97,10 @@ const id = {
   goalDone: "Tercapai!",
   deadline: "Tenggat",
   perMonthNeeded: "per periode lagi",
-  // Categories
   categories: "Kategori",
   categoriesDesc: "Kelola jenis pemasukan & pengeluaran",
   addCategory: "Tambah kategori",
   catName: "Nama kategori",
-  // Bills (F06)
   bills: "Tagihan & Rutinitas",
   billsDesc: "Aturan berulang: tagihan otomatis atau minta konfirmasi",
   addRule: "Tambah aturan",
@@ -138,7 +128,6 @@ const id = {
   ruleReminder: "Pengingat tagihan",
   dueTomorrow: "besok jatuh tempo",
   dueToday: "hari ini jatuh tempo",
-  // Reports
   insightTrend: "Insight",
   trend6: "Tren 6 periode",
   trend6m: "Tren 6 bulan",
@@ -151,7 +140,6 @@ const id = {
   down: "turun",
   topCategory: "Kategori terbesar",
   avgPerDay: "Rata-rata per hari",
-  // Settings
   settings: "Pengaturan",
   appearance: "Tampilan",
   themeMode: "Mode",
@@ -218,7 +206,6 @@ const id = {
   resetAll: "Hapus semua data",
   resetAllDesc: "Semua transaksi, budget, dompet, dan aturan dihapus dari perangkat.",
   about: "Tentang",
-  // Onboarding
   welcome: "Selamat datang di Budgeto",
   welcomeDesc: "Catat keuanganmu dengan cepat, offline, dan tanpa akun.",
   obPayday: "Kapan tanggal gajianmu?",
@@ -234,7 +221,6 @@ const id = {
   next: "Lanjut",
   start: "Mulai pakai",
   step: "Langkah",
-  // Misc
   edit: "Ubah",
   delete: "Hapus",
   cancel: "Batal",
@@ -504,7 +490,6 @@ export const useLang = create<LangState>()(
   )
 );
 
-/** Default mengikuti bahasa sistem saat pertama kali (tidak menimpa pilihan tersimpan). */
 export function initLangFromSystem(): void {
   const stored = localStorage.getItem("budgeto-lang");
   if (stored) return; // sudah pernah disimpan (persist)

@@ -4,7 +4,6 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { toast } from "sonner";
 
-/** True saat berjalan di dalam APK (Capacitor), false di browser/PWA. */
 export function isNativeApp(): boolean {
   try {
     return Capacitor.isNativePlatform();
@@ -15,7 +14,6 @@ export function isNativeApp(): boolean {
 
 const LOG_KEY = "budgeto-notif-log";
 
-/** Catatan singkat (8 terakhir) untuk diagnosa — tampil di Pengaturan → Tes notifikasi. */
 export function logNotif(msg: string): void {
   try {
     const t = new Date().toTimeString().slice(0, 8);
@@ -33,8 +31,7 @@ export function readNotifLog(): string[] {
   }
 }
 
-// WebView Android TIDAK mendukung Web Notification API / izin notifikasi web,
-// jadi di APK notifikasi memakai plugin native @capacitor/local-notifications.
+// WebView Android tidak mendukung Web Notification API, jadi di APK notifikasi memakai plugin native.
 const CHANNEL_ID = "budgeto-default";
 const DAILY_REMINDER_ID = 1001;
 let channelReady = false;
@@ -43,7 +40,6 @@ async function nativePlugin() {
   return LocalNotifications;
 }
 
-/** Cegah menggantung selamanya bila bridge native tidak merespons. */
 function withTimeout<T>(p: Promise<T>, label: string, ms = 6000): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`TIMEOUT di langkah: ${label}`)), ms);
@@ -87,7 +83,6 @@ export async function requestPermission(): Promise<NotificationPermission> {
     try {
       const ln = await nativePlugin();
       let { display } = await ln.checkPermissions();
-      // Android 13+: dialog izin sistem muncul di sini (hanya bila belum pernah ditolak 2x)
       if (display === "prompt" || display === "prompt-with-rationale") {
         ({ display } = await ln.requestPermissions());
       }
@@ -125,7 +120,7 @@ async function cleanupSwInApk(): Promise<void> {
 
 export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
-  // Di APK aset sudah lokal; service worker hanya menyajikan cache lama yang basi.
+  // Di APK aset sudah lokal; service worker tidak diperlukan
   if (isNativeApp()) { void cleanupSwInApk(); return null; }
   if (swRegistration) return swRegistration;
   try {
@@ -136,10 +131,8 @@ export async function ensureSw(): Promise<ServiceWorkerRegistration | null> {
   }
 }
 
-/** Tampilkan notifikasi: selalu toast in-app; system notification bila izin ada. */
 export async function notify(title: string, body: string, icon = "wallet", opts?: { toast?: boolean }): Promise<void> {
   logNotif(`notify: ${title}`);
-  // Toast statis & sinkron — tidak boleh memblokir notifikasi sistem.
   if (opts?.toast !== false) {
     try { toast(title, { description: body }); } catch { /* toast opsional */ }
   }
@@ -177,7 +170,6 @@ export async function notify(title: string, body: string, icon = "wallet", opts?
   } catch { /* notifikasi gagal — toast sudah muncul */ }
 }
 
-// Notifikasi per aksi sistem
 export async function notifyAction(title: string, body: string, icon = "wallet"): Promise<void> {
   const s = (await import("./settings")).useSettings.getState();
   if (!s.notificationsEnabled || !s.actionNotif) {
@@ -187,13 +179,11 @@ export async function notifyAction(title: string, body: string, icon = "wallet")
   await notify(title, body, icon, { toast: false });
 }
 
-// Pengingat harian
 const REMINDER_KEY = "budgeto-last-reminder";
 
 export function scheduleDailyReminder(time: string, enabled: boolean): void {
   if (typeof window === "undefined") return;
 
-  // APK: pakai alarm native berulang — tetap bunyi walau app ditutup
   if (isNativeApp()) {
     void (async () => {
       try {
@@ -241,7 +231,6 @@ export async function fireDailyReminder(): Promise<void> {
   void notify("Jangan lupa catat keuangan 💰", "Ada pengeluaran hari ini yang belum dicatat di Budgeto?", "piggy-bank");
 }
 
-// Diagnosa notifikasi
 async function runDiagnose(): Promise<string> {
   const out: string[] = [];
   let step = "mulai";

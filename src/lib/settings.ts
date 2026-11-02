@@ -13,38 +13,28 @@ export interface PinRecord {
 
 export interface Settings {
   onboarded: boolean;
-  // Tampilan (F03) — 5 schema warna penuh + tone
   themeMode: "light" | "dark" | "system";
-  themeSchema: string; // mocha | emerald | aqua | sunset | lavender
-  /** -100 (dingin) … 0 (netral) … +100 (hangat) */
+  themeSchema: string;
   tone: number;
-  /** legacy preset aksen (dipertahankan untuk kompatibilitas widget lama) */
   accent: string;
-  // Bahasa (F09)
   lang: "id" | "en";
-  // Periode (F05)
   periodMode: PeriodMode;
-  payday: number; // 1-31
-  // Keamanan (F07)
+  payday: number;
   lockEnabled: boolean;
   pin: PinRecord | null;
-  autoLockDelay: 0 | 60 | 300; // detik: langsung / 1 menit / 5 menit
+  autoLockDelay: 0 | 60 | 300;
   biometricEnabled: boolean;
   privacyMode: boolean;
-  // Notifikasi
   notificationsEnabled: boolean;
   txNotif: boolean;
-  /** notifikasi sistem untuk setiap aksi: dompet, goal, budget, kategori, tagihan, backup */
   actionNotif: boolean;
   budgetAlerts: boolean;
   dailyReminder: boolean;
   reminderTime: string;
   billReminders: boolean;
-  // Cloud (opsional)
   cloudAutoSync: boolean;
   supabaseUrl: string;
   supabaseAnonKey: string;
-  // Preferensi alur catat cepat (F02)
   lastWalletId: string;
   lastBackupAt: number;
 }
@@ -92,8 +82,6 @@ export const useSettings = create<SettingsState>()(
     {
       name: "budgeto-settings-v3",
       version: 2,
-      // v0 → v1: notifikasi default mati (user nyalakan sendiri, sekaligus memicu dialog izin)
-      // v1 → v2: preset aksen lama dipetakan ke schema tema baru + field baru
       migrate: (persisted, version) => {
         const st = (persisted ?? {}) as Partial<SettingsState>;
         if (version < 1) st.notificationsEnabled = false;

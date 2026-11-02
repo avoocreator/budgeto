@@ -34,8 +34,6 @@ export function Onboarding() {
     try {
       set("periodMode", periodMode);
       set("payday", payday);
-      // dompet pertama: buat bila belum ada; bila sudah (seed default),
-      // terapkan nama & saldo awal yang diketik ke dompet pertama
       const wallets = await db.wallets.filter((w) => !w.deleted).toArray();
       if (wallets.length === 0 && walletName.trim()) {
         await saveWallet({ name: walletName, icon: "banknote", color: PALETTE[0], initialBalance: Number(walletBalance) || 0 });
@@ -51,12 +49,10 @@ export function Onboarding() {
         });
         set("lastWalletId", first.id);
       }
-      // budget awal: buat untuk kategori umum? — simpan global via kategori pertama
       if (Number(budgetAmount) > 0) {
         const cats = await db.categories.filter((c) => !c.deleted && c.type === "expense").toArray();
         if (cats[0]) await saveBudget({ categoryId: cats[0].id, amount: Number(budgetAmount) });
       }
-      // PIN
       if (pin.length >= 4) {
         const record = await hashPin(pin);
         set("lockEnabled", true);
@@ -73,7 +69,6 @@ export function Onboarding() {
   const next = () => (step < totalSteps - 1 ? setStep(step + 1) : void finish());
 
   const steps = [
-    // Langkah 0: Tanggal gajian
     {
       icon: <CalendarDays size={22} />,
       title: id ? "Kapan tanggal gajianmu?" : "When is your payday?",
@@ -101,7 +96,6 @@ export function Onboarding() {
         </div>
       ),
     },
-    // Langkah 1: Dompet pertama
     {
       icon: <Wallet size={22} />,
       title: id ? "Buat dompet pertamamu" : "Create your first wallet",
@@ -124,7 +118,6 @@ export function Onboarding() {
         </div>
       ),
     },
-    // Langkah 2: Budget
     {
       icon: <Gauge size={22} />,
       title: id ? "Berapa budgetmu per periode?" : "What's your budget per period?",
@@ -147,7 +140,6 @@ export function Onboarding() {
         </div>
       ),
     },
-    // Langkah 3: PIN opsional
     {
       icon: <ShieldCheck size={22} />,
       title: id ? "Lindungi dengan PIN?" : "Protect with a PIN?",

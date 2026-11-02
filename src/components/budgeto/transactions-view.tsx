@@ -230,9 +230,6 @@ function hariName(dateStr: string): string {
   return new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(new Date(y, m - 1, d));
 }
 
-/** Baris dengan geser kiri untuk hapus (F08); tap = edit.
- *  Edit dikenali dari pointerup (bukan click) agar swipe tidak pernah
- *  memicu sheet edit secara tidak sengaja. */
 function SwipeRow({ tx, cats, onEdit, onDelete }: { tx: Transaction; cats: import("@/lib/types").Category[]; onEdit: () => void; onDelete: () => void }) {
   const [dx, setDx] = useState(0);
   const startX = useRef(0);

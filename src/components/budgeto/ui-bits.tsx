@@ -10,7 +10,6 @@ import { localeOf } from "@/lib/i18n";
 import { Eye, EyeOff, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Icon } from "./icons";
 
-/** Tampilkan nominal; otomatis •••• bila mode privasi aktif (F07). */
 export function MoneyText({
   amount, className, compact = false, signed = false, colorize = false, forceHide = false,
 }: {
@@ -28,8 +27,6 @@ export function MoneyText({
   );
 }
 
-/** Nominal dengan animasi count-up halus saat nilai berubah (F01).
- *  Memakai MotionValue → DOM diperbarui imperatif tanpa re-render React. */
 export function AnimatedMoney({
   amount, className, compact = false, duration = 0.55,
 }: {
@@ -55,10 +52,6 @@ export function AnimatedMoney({
   return <motion.span className={cn("big-number", className)}>{text}</motion.span>;
 }
 
-/**
- * Angka saldo utama: prefiks "Rp" lebih kecil & redup, angka besar tabular.
- * Count-up halus hanya saat nilai BERUBAH (render pertama langsung tampil).
- */
 export function MoneyHero({ amount, className, size = 40 }: { amount: number; className?: string; size?: number }) {
   const lang = useLang((s) => s.lang);
   const privacy = useSettings((s) => s.privacyMode);
@@ -84,7 +77,6 @@ export function MoneyHero({ amount, className, size = 40 }: { amount: number; cl
   );
 }
 
-/** Chip perubahan persen. goodWhenUp=false untuk pengeluaran (naik = buruk). */
 export function Delta({ value, goodWhenUp = true, className }: { value: number; goodWhenUp?: boolean; className?: string }) {
   const lang = useLang((s) => s.lang);
   const up = value >= 0;
@@ -99,7 +91,6 @@ export function Delta({ value, goodWhenUp = true, className }: { value: number; 
   );
 }
 
-/** Toggle cepat sembunyikan angka (alur I). */
 export function PrivacyToggle({ className }: { className?: string }) {
   const privacy = useSettings((s) => s.privacyMode);
   const set = useSettings((s) => s.set);
@@ -156,7 +147,6 @@ export function Card({ children, className }: { children: React.ReactNode; class
   return <div className={cn("rounded-[20px] border bg-card", className)}>{children}</div>;
 }
 
-/** Segmented control dengan pill aktif yang MELUNCUR halus antar opsi. */
 export function Segmented<T extends string>({
   value, options, onChange, className,
 }: {
@@ -191,7 +181,6 @@ export function Segmented<T extends string>({
   );
 }
 
-/** Progress bar tipis warna sesuai persen (budget/widget) + animasi lebar. */
 export function ProgressBar({ percent, className }: { percent: number; className?: string }) {
   const p = Math.max(0, Math.min(100, percent));
   const color = percent >= 100 ? "bg-bad" : percent >= 80 ? "bg-warn" : "bg-primary";

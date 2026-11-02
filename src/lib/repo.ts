@@ -15,7 +15,6 @@ import { firstOccurrence } from "./recurring";
 
 const now = () => Date.now();
 
-/** Bantu format uang ringkas untuk isi notifikasi (ikut bahasa aktif). */
 function rp(n: number): string {
   const lang = useLang.getState().lang;
   return new Intl.NumberFormat(lang === "en" ? "en-US" : "id-ID").format(Math.abs(n));
@@ -29,7 +28,6 @@ function afterChange(): void {
   scheduleSync();
 }
 
-// Transaksi
 let lastSaveAt = 0;
 
 export async function saveTransaction(input: {
@@ -42,7 +40,6 @@ export async function saveTransaction(input: {
   date: string;
   note: string;
 }): Promise<Transaction | null> {
-  // Guard tombol simpan dua kali cepat (F02): abaikan tap < 400 ms
   const t0 = now();
   if (!input.id && t0 - lastSaveAt < 400) return null;
   lastSaveAt = t0;
@@ -84,7 +81,6 @@ export async function deleteTransaction(id: string): Promise<Transaction | null>
   return tx;
 }
 
-/** Undo hapus (F08): transaksi kembali dengan id yang sama. */
 export async function restoreTransaction(tx: Transaction): Promise<void> {
   await db.transactions.put({ ...tx, deleted: false, updatedAt: now() });
   void notifyAction(
@@ -117,7 +113,6 @@ async function fireTxNotification(tx: Transaction, isEdit = false): Promise<void
   void notify(title, body, tx.type === "income" ? "trending-up" : "trending-down");
 }
 
-/** Peringatan budget 80% & 100% (sekali per level per periode). */
 export async function checkBudgetAlerts(): Promise<void> {
   const s = useSettings.getState();
   if (!s.notificationsEnabled || !s.budgetAlerts) { logNotif(`budget dilewati: aktif=${s.notificationsEnabled} budgetAlerts=${s.budgetAlerts}`); return; }
@@ -141,7 +136,6 @@ export async function checkBudgetAlerts(): Promise<void> {
   }
 }
 
-// Saran kategori
 export async function suggestCategories(type: "income" | "expense", note = ""): Promise<{ ranked: Category[]; top: Category | null }> {
   const [txs, cats] = await Promise.all([
     db.transactions.orderBy("createdAt").reverse().limit(300).toArray(),
@@ -153,7 +147,6 @@ export async function suggestCategories(type: "income" | "expense", note = ""): 
     if (t.deleted || t.type !== type || !t.categoryId) continue;
     let s = 1;
     if (noteLc && t.note && t.note.toLowerCase().includes(noteLc)) s += 3;
-    // transaksi terbaru sedikit lebih berbobot
     s += Math.max(0, 1 - (now() - t.createdAt) / (90 * 86400000)) * 0.5;
     score.set(t.categoryId, (score.get(t.categoryId) ?? 0) + s);
   }
@@ -164,7 +157,6 @@ export async function suggestCategories(type: "income" | "expense", note = ""): 
   return { ranked, top };
 }
 
-// Kategori
 export async function saveCategory(input: { id?: string; name: string; type: "income" | "expense"; icon: string; color: string }): Promise<void> {
   const existing = input.id ? await db.categories.get(input.id) : null;
   const cat: Category = {
@@ -193,7 +185,6 @@ export async function deleteCategory(id: string): Promise<void> {
   afterChange();
 }
 
-// Dompet
 export async function saveWallet(input: { id?: string; name: string; icon: string; color: string; initialBalance: number }): Promise<void> {
   const existing = input.id ? await db.wallets.get(input.id) : null;
   const w: Wallet = {
@@ -222,7 +213,6 @@ export async function deleteWallet(id: string): Promise<void> {
   afterChange();
 }
 
-// Budget
 export async function saveBudget(input: { id?: string; categoryId: string; amount: number }): Promise<void> {
   const existing = input.id ? await db.budgets.get(input.id) : null;
   const b: Budget = {
@@ -253,7 +243,6 @@ export async function deleteBudget(id: string): Promise<void> {
   afterChange();
 }
 
-// Target tabungan
 export async function saveGoal(input: { id?: string; name: string; targetAmount: number; currentAmount: number; deadline: string | null; icon: string; color: string; status?: Goal["status"] }): Promise<void> {
   const existing = input.id ? await db.goals.get(input.id) : null;
   const g: Goal = {
@@ -313,7 +302,6 @@ export async function deleteGoal(id: string): Promise<void> {
   afterChange();
 }
 
-// Aturan berulang
 export async function saveRecurringRule(input: {
   id?: string; name: string; type: "expense" | "income"; amount: number;
   categoryId: string; walletId: string; frequency: RecurringRule["frequency"];
@@ -353,7 +341,6 @@ export async function saveRecurringRule(input: {
 export async function deleteRecurringRule(id: string): Promise<void> {
   const r = await db.recurringRules.get(id);
   if (!r) return;
-  // transaksi yang sudah tercatat TIDAK ikut terhapus
   await db.recurringRules.put({ ...r, deleted: true, active: false, updatedAt: now() });
   void notifyAction(
     L() === "id" ? "Aturan tagihan dihapus" : "Recurring rule deleted",
@@ -363,7 +350,6 @@ export async function deleteRecurringRule(id: string): Promise<void> {
   afterChange();
 }
 
-// Ekspor, impor, reset
 export async function exportData(): Promise<string> {
   const [transactions, categories, wallets, budgets, goals, recurringRules] = await Promise.all([
     db.transactions.toArray(), db.categories.toArray(), db.wallets.toArray(),
@@ -403,7 +389,6 @@ export function toCsv(txs: Transaction[], cats: Category[], wallets: Wallet[]): 
 
 export interface ImportResult { ok: boolean; message: string; counts?: Record<string, number> }
 
-/** Impor backup v3 (dan v2 tanpa recurringRules). Mode: gabung (upsert per id). */
 export async function importData(json: string, mode: "merge" | "replace" = "merge"): Promise<ImportResult> {
   try {
     const data = JSON.parse(json) as Record<string, unknown>;
