@@ -1,3 +1,7 @@
+<p align="right">
+  🌐 <b>Bahasa Indonesia</b> • <a href="README.en.md">English</a>
+</p>
+
 # 💰 Budgeto
 
 > Aplikasi pengelola keuangan pribadi modern berbasis **offline-first**, **bebas iklan**, dan dirancang agar pencatatan uang harian berlangsung instan, privat, dan relevan dengan siklus gajian nyata.
@@ -11,9 +15,6 @@
   </a>
   <a href="#-tech-stack--arsitektur-teknologi">
     <img src="https://img.shields.io/badge/Storage-Offline--First_(Dexie)-2C3E50?style=for-the-badge&logo=javascript&logoColor=white" alt="Dexie" />
-  </a>
-  <a href="#-tech-stack--arsitektur-teknologi">
-    <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   </a>
 </p>
 
@@ -228,12 +229,6 @@ Bagi pengembang yang ingin berkontribusi atau menjalankan Budgeto di lingkungan 
    bun x cap sync android
    bun x cap open android
    ```
-
----
-
-## 📄 Lisensi
-
-Proyek ini dirilis di bawah lisensi [MIT License](LICENSE). Bebas digunakan, dipelajari, dan dikembangkan lebih lanjut.
 
 ---
 
