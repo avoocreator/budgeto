@@ -5,7 +5,7 @@
    - Halaman & aset build: cache-first (stale-while-revalidate)
    - Navigasi: fallback ke "/" saat offline
    ============================================================ */
-const CACHE = "budgeto-v3";
+const CACHE = "budgeto-v3.1";
 const CORE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
