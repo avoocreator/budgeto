@@ -1,146 +1,243 @@
 # 💰 Budgeto
 
-### Take Control of Your Money.
+> Aplikasi pengelola keuangan pribadi modern berbasis **offline-first**, **bebas iklan**, dan dirancang agar pencatatan uang harian berlangsung instan, privat, dan relevan dengan siklus gajian nyata.
 
-[![Download APK](https://img.shields.io/badge/Download-APK-34D399?style=for-the-badge&logo=android&logoColor=white)](https://github.com/avoocreator/budgeto/releases/latest)
+<p align="left">
+  <a href="https://github.com/avoocreator/budgeto/releases/latest">
+    <img src="https://img.shields.io/badge/Download-APK_Android-12814F?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
+  </a>
+  <a href="#-tech-stack--arsitektur-teknologi">
+    <img src="https://img.shields.io/badge/Next.js-16_(Turbopack)-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
+  </a>
+  <a href="#-tech-stack--arsitektur-teknologi">
+    <img src="https://img.shields.io/badge/Storage-Offline--First_(Dexie)-2C3E50?style=for-the-badge&logo=javascript&logoColor=white" alt="Dexie" />
+  </a>
+  <a href="#-tech-stack--arsitektur-teknologi">
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
+  </a>
+</p>
 
-Budgeto is a modern, offline-first personal finance application designed to make managing money simple, intuitive, and accessible. Track income and expenses, manage multiple wallets, set budgets, organize recurring bills, build savings, and understand your financial habits through a clean and minimalist interface.
+---
 
-Free to use, ad-free, and designed to keep your finances accessible even without an internet connection.
+## 📌 Latar Belakang
 
-## ✨ Features
+Banyak orang ingin rutin mencatat pengeluaran, tetapi terhenti di tengah jalan karena aplikasi finansial yang ada sering kali:
 
-- **Smart Dashboard** — Monitor your total balance, monthly income and expenses, and remaining daily budget until payday with real-time financial status indicators.
-- **Quick Transactions** — Record income and expenses through a streamlined interface with a native-style numeric keypad and smart category suggestions.
-- **Recurring Bills** — Manage regular payments such as rent, internet, and subscriptions with automatic or confirmation-based recording and duplicate prevention.
-- **Flexible Payday** — Set your payday from the 1st to the 31st and organize financial periods around your personal payment schedule.
-- **Multi-Wallet Management** — Organize cash, bank accounts, and e-wallets while supporting transfers between wallets.
-- **Smart Budgeting** — Set category-based spending limits and monitor progress with warnings at 80% and 100% usage.
-- **Savings Goals** — Create savings targets, record regular contributions, and track progress toward your financial goals.
-- **Transaction Management** — Search, filter, delete, and undo transaction changes with ease.
-- **Financial Analytics** — Explore six-month spending trends, category breakdowns, daily activity, and financial insights.
-- **Reminders & Notifications** — System-level notifications for every action: transactions, transfers, wallets, savings goals, budgets, categories, recurring bills, and backups — plus budget warnings and daily reminders.
-- **App Lock** — Protect access to the application using a PIN stored as a PBKDF2-derived hash rather than plain text.
-- **Bilingual Interface** — Switch between Indonesian and English directly from the settings.
-- **5 Color Schemes + Tone Control** — Choose between Mocha, Emerald, Aqua, Sunset, and Lavender — each with light & dark mode — plus a cool ↔ warm tone slider to fine-tune the atmosphere.
-- **Themed Home-Screen Widget** — The Android widget puts your total balance front and center, with a one-line income/expense summary and two quick-add buttons, following the app theme.
-- **Offline-First Experience** — Access locally stored financial data without an internet connection using IndexedDB.
-- **Optional Cloud Sync** — Back up and synchronize financial data across devices through Supabase.
-- **Progressive Web App (PWA)** — Install Budgeto from a supported browser for an app-like experience.
-- **Android App & Widget** — Use the Android application and home-screen widget for balance information and quick transaction actions.
-- **Data Portability** — Import and export JSON backups and export transaction records to CSV.
+1. **Terlalu Lambat & Bergantung pada Internet:** Mewajibkan login akun, menampilkan iklan pop-up, atau memuat data dari server cloud yang lambat saat pengguna sedang terburu-buru di depan kasir toko atau di tempat dengan sinyal minim.
+2. **Siklus Anggaran yang Kaku:** Membatasi perhitungan anggaran hanya dari tanggal 1 sampai akhir bulan kalender. Padahal, sebagian besar orang menerima gaji di tanggal yang bervariasi (misalnya tanggal 25) sehingga saldo dan sisa anggaran di aplikasi tidak mencerminkan kenyataan keuangan harian mereka.
+3. **Privasi yang Dipertanyakan:** Data transaksi pribadi dan catatan aset sering kali diunggah secara diam-diam ke server pihak ketiga tanpa transparansi.
+4. **Informasi Tidak Terjangkau Cepat:** Mengetahui sisa uang atau mencatat pengeluaran kecil mengharuskan pengguna membuka aplikasi dari awal, bukan langsung dari layar beranda smartphone.
 
-## 📱 Download the Android APK
+**Budgeto** lahir untuk menyelesaikan masalah tersebut:
+* **Kecepatan Maksimal (3-Tap Record):** Buka aplikasi atau widget, masukkan nominal pada papan tombol besar, pilih kategori yang disarankan otomatis, dan selesai.
+* **100% Offline-First:** Semua data finansial tersimpan aman di penyimpanan lokal perangkat pengguna (IndexedDB). Tidak ada biaya langganan, tanpa iklan, dan aplikasi tetap berjalan mulus di mode pesawat.
+* **Sisa Aman Harian Sesuai Siklus Gajian:** Menghitung secara matematis berapa uang yang aman dibelanjakan setiap hari sampai tanggal gajian berikutnya tiba.
+* **Widget Layar Utama Android:** Membawa informasi total saldo, ringkasan periode, dan tombol aksi cepat langsung ke layar utama ponsel pengguna.
 
-You do **not** need Android Studio. GitHub Actions builds the APK for you automatically:
+---
 
-1. Push this repository to GitHub (branch `main`).
-2. Open the **Actions** tab — the workflow *“Build APK Budgeto”* runs on every push (or trigger it manually via **Run workflow**).
-3. When it finishes, open the **Releases** tab → **Budgeto APK (terbaru)** → download `Budgeto.apk`.
-4. Install it on your phone (allow “install from unknown sources” when asked).
+## 🖼️ Pratinjau Antarmuka
 
-The APK is a debug-signed build — perfect for personal use. The download link for the newest build is always: `https://github.com/<user>/<repo>/releases/latest`
+Antarmuka Budgeto dirancang bersih, tenang, mengutamakan keterbacaan angka (*tabular numerals*), serta mendukung mode terang (*light*) dan mode gelap (*dark*).
 
-## 🚀 Getting Started
+### 1. Tampilan Desktop & Tablet
 
-### Prerequisites
+Tata letak desktop memanfaatkan grid multi-kolom yang luas: kartu saldo utama dan daftar dompet di sisi kiri, serta kartu ringkasan arus kas, grafik tren, dan tabel transaksi di sisi kanan.
 
-- [Git](https://git-scm.com/)
-- [Bun](https://bun.sh/)
+| Mode Terang (Light) | Mode Gelap (Dark) |
+| :---: | :---: |
+| ![Desktop Light](docs/preview/beranda-desktop.png) | ![Desktop Dark](docs/preview/beranda-desktop-dark.png) |
 
-### Installation
+---
 
-Clone the repository:
+### 2. Tampilan Ponsel (Mobile)
 
-```bash
-git clone https://github.com/avoocreator/budgeto.git
-cd budgeto
-```
+Pada layar vertikal, hierarki informasi ditata mengalir: fokus utama pada total saldo, disusul tombol aksi cepat catat keluar/masuk, status sisa anggaran per hari, arus kas 6 periode, transaksi terakhir, target tabungan, dan tagihan terdekat.
 
-Install dependencies:
+| Beranda Mobile (Light) | Beranda Mobile (Dark) |
+| :---: | :---: |
+| <img src="docs/preview/beranda-mobile.png" width="380" alt="Mobile Light" /> | <img src="docs/preview/beranda-mobile-dark.png" width="380" alt="Mobile Dark" /> |
 
-```bash
-bun install
-```
+---
 
-Start the development server:
+### 3. Widget Layar Utama Android & Pilihan Tema
 
-```bash
-bun run dev
-```
+Widget Android 4x2 menyajikan total saldo secara jelas, indikator status ringkas, dan tombol pintasan transaksi tanpa perlu membuka aplikasi terlebih dahulu. Tampilan widget secara otomatis menyelaraskan warna latar dan tombol dengan skema tema yang dipilih di dalam aplikasi.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+| Widget di Homescreen | 5 Skema Tema Warna |
+| :---: | :---: |
+| <img src="docs/preview/widget-preview.png" width="420" alt="Widget Preview" /> | <img src="docs/preview/widget-themes.png" width="420" alt="Widget Themes" /> |
 
-### Production Build
+| Varian Status Widget |
+| :---: |
+| <img src="docs/preview/widget-states.png" width="560" alt="Widget States" /> |
 
-Build the application:
+---
 
-```bash
-bun run build
-```
+## ✨ Fitur Utama
 
-Start the production server:
+### 📊 Dashboard Cerdas & Saldo Utama
+* **Fokus Total Saldo:** Menampilkan total saldo riil dari seluruh dompet aktif dengan format tipografi tabular yang tegas.
+* **Sisa Aman per Hari:** Menghitung jatah belanja harian yang aman berdasarkan sisa anggaran periode berjalan dibagi sisa hari menuju gajian, setelah dikurangi kewajiban tagihan yang belum dibayar.
+* **Indikator Arus Kas & Tren 6 Periode:** Membandingkan pemasukan dan pengeluaran terhadap periode sebelumnya serta grafik batang interaktif 6 periode terakhir.
 
-```bash
-bun run start
-```
+### ⚡ Catat Transaksi Super Cepat (Quick Add)
+* **Papan Tombol Alami (Numpad):** Lembar pencatatan transaksi yang mengutamakan input nominal terlebih dahulu tanpa membebani pengguna dengan form panjang.
+* **Saran Kategori Otomatis:** Sistem mendeteksi riwayat transaksi dan kemiripan catatan untuk merekomendasikan kategori yang paling sering digunakan pada urutan teratas.
 
-## 📖 How to Use Budgeto
+### 🗓️ Siklus Periode Fleksibel (Payday Mode)
+* Mendukung penentuan tanggal gajian dari tanggal 1 hingga 31.
+* Menangani bulan-bulan pendek secara otomatis (misalnya gajian tanggal 31 otomatis bergeser ke hari terakhir di bulan Februari).
+* Mendukung mode kalender standar (tanggal 1 s/d akhir bulan) bagi pengguna yang memilih siklus bulanan konvensional.
 
-### 1. Set Up Your Finances
+### 👛 Manajemen Multi-Dompet & Transfer
+* Kelola berbagai sumber dana: Tunai, Rekening Bank, E-Wallet, dan Tabungan.
+* Saldo dompet dihitung secara matematis dari mutasi transaksi (pemasukan, pengeluaran, dan transfer antar-dompet).
 
-Configure your preferred language, appearance, payday, and other application settings. Create wallets to organize your available funds.
+### 🔔 Tagihan & Rutinitas (Recurring Bills)
+* Atur pengeluaran atau pemasukan rutin (mingguan atau bulanan) seperti sewa kos, internet, listrik, dan langganan digital.
+* **Mode Otomatis:** Transaksi tercatat otomatis saat hari jatuh tempo tiba.
+* **Mode Konfirmasi:** Transaksi masuk ke antrean menunggu persetujuan pengguna, dengan opsi konfirmasi nominal, ubah jumlah, atau lewati.
+* Pengingat notifikasi otomatis H-1 sebelum tagihan jatuh tempo.
 
-### 2. Record Transactions
+### 🎯 Target Tabungan (Savings Goals)
+* Tetapkan target tabungan beserta tenggat waktu yang diinginkan.
+* Catat setoran tabungan secara bertahap dengan visualisasi persentase progres dan efek animasi perayaan ketika target berhasil dicapai.
 
-Add income and expenses, select a wallet and category, and include notes when needed. Use the quick transaction interface to record daily financial activity.
+### 🎨 Theme Engine & Tone Control
+* **5 Skema Palet Penuh:** *Mocha* (hangat), *Emerald* (segar), *Aqua* (modern), *Sunset* (enerjik), dan *Lavender* (tenang). Masing-masing skema memiliki varian terang (*light*) dan gelap (*dark*).
+* **Slider Temperatur Tone:** Pengatur temperatur visual (-100 dingin s/d +100 hangat) yang menyuntikkan tint warna halus ke seluruh permukaan antarmuka.
 
-### 3. Manage Budgets and Bills
+### 🔒 Keamanan & Mode Privasi
+* **Kunci Aplikasi (PIN):** PIN diamankan menggunakan fungsi derivasi kunci **PBKDF2** (WebCrypto API) dengan 100.000 iterasi dan salt acak unik. PIN asli tidak pernah disimpan dalam bentuk teks polos (*plain text*).
+* **Mode Privasi Satu Ketukan:** Sembunyikan seluruh angka nominal menjadi `••••••` saat berada di tempat umum atau saat berbagi tangkapan layar.
+* **Auto-Lock Cerdas:** Aplikasi otomatis mengunci kembali saat diminimalkan atau beralih aplikasi sesuai jeda waktu yang dipilih.
 
-Set spending limits for individual categories and monitor budget usage through the dashboard. Add recurring bills to organize regular payments and configure how they are recorded.
+### 📱 Android Home-Screen Widget
+* Widget native Android berukuran 4x2 yang membaca data terkompresi langsung dari `SharedPreferences`.
+* Memperbarui informasi secara instan setiap ada perubahan transaksi, saat pergantian hari, maupun saat aplikasi dibuka.
+* Mendukung *deep linking* (`budgeto://add?type=expense` & `budgeto://add?type=income`) untuk langsung membuka lembar pencatatan dari layar beranda ponsel.
 
-### 4. Track Savings Goals
+### 🌐 Portabilitas Data & Sinkronisasi Opsional
+* **Ekspor & Impor JSON Penuh:** Cadangkan seluruh data transaksi, kategori, dompet, target, dan tagihan ke dalam satu file JSON lokal kapan saja.
+* **Ekspor CSV:** Unduh mutasi transaksi ke format spreadsheet (Excel / Google Sheets).
+* **Opsional Cloud Sync (Supabase):** Bagi pengguna yang membutuhkan sinkronisasi lintas perangkat, tersedia integrasi opsional ke backend Supabase dengan autentikasi Email OTP dan *Row Level Security (RLS)*.
 
-Create financial targets, record contributions, and monitor your progress toward each savings goal.
+---
 
-### 5. Review Financial Insights
+## 🚀 Cara Menggunakan & Instalasi
 
-Use reports and charts to understand spending patterns, review cash flow, and identify opportunities to improve your financial habits.
+### 💻 1. Versi Desktop / Laptop (Web & PWA)
+Budgeto dapat diakses langsung melalui peramban web modern tanpa perlu instalasi aplikasi tambahan:
+1. Buka URL Budgeto di browser Anda (misalnya Google Chrome, Microsoft Edge, atau Mozilla Firefox).
+2. **Pasang sebagai PWA (Sangat Disarankan):** Klik ikon **Install App** atau tanda unduh di address bar browser Anda.
+3. Budgeto akan terpasang di komputer Anda layaknya aplikasi desktop mandiri (memiliki jendela sendiri dan pintasan di Desktop/Start Menu/Taskbar).
 
-### 6. Protect and Manage Your Data
+---
 
-Enable the app lock to protect access to your finances. Export backups regularly and configure optional cloud synchronization when you need to access your data across devices.
+### 📱 2. Versi Ponsel Android (APK)
 
-## 🎨 Design Philosophy
+Anda tidak perlu mengompilasi kode sumber atau memasang Android Studio. Paket aplikasi Android (`APK`) dibangun secara otomatis oleh pipeline CI/CD GitHub Actions:
 
-Budgeto emphasizes simplicity, clarity, and functionality. Its compact, minimalist interface keeps essential financial information accessible without unnecessary visual clutter.
+1. Buka halaman rilis resmi: **[Budgeto Releases (Terbaru)](https://github.com/avoocreator/budgeto/releases/latest)**.
+2. Unduh file **`Budgeto.apk`**.
+3. Buka file APK di ponsel Android Anda dan pilih **Install** (izinkan opsi *"Install unknown apps"* pada browser/file manager jika diminta).
+4. **Memasang Widget di Homescreen:**
+   * Tekan dan tahan area kosong di layar utama ponsel Anda.
+   * Pilih menu **Widgets**, cari **Budgeto**, lalu seret widget **4x2** ke layar Anda.
+   * Total saldo dan tombol pintasan transaksi kini siap digunakan langsung dari layar utama.
 
-The application combines practical financial tools with customizable themes, bilingual support, and streamlined interactions to make daily money management more approachable.
+---
 
-## 🔒 Privacy & Data
+## 🛠️ Tech Stack & Arsitektur Teknologi
 
-Budgeto follows an offline-first approach, storing financial data locally using IndexedDB. Core local data management does not require a continuous internet connection.
+Aplikasi ini dibangun menggunakan arsitektur web modern yang dikemas ke lingkungan native Android menggunakan Capacitor:
 
-Cloud synchronization is optional and powered by Supabase. Supabase authentication and Row Level Security (RLS) help protect user data when cloud features are configured.
+<p align="left">
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript_5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" /></a>
+  <a href="https://dexie.org/"><img src="https://img.shields.io/badge/Dexie.js_IndexedDB-2C3E50?style=for-the-badge&logo=javascript&logoColor=white" alt="Dexie" /></a>
+  <a href="https://capacitorjs.com/"><img src="https://img.shields.io/badge/Capacitor_8-119EFF?style=for-the-badge&logo=capacitor&logoColor=white" alt="Capacitor" /></a>
+  <a href="https://developer.android.com/"><img src="https://img.shields.io/badge/Android_SDK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android" /></a>
+  <a href="https://www.framer.com/motion/"><img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white" alt="Framer Motion" /></a>
+  <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" /></a>
+  <a href="https://bun.sh/"><img src="https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white" alt="Bun" /></a>
+  <a href="https://github.com/features/actions"><img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" /></a>
+</p>
 
-The app lock uses PBKDF2-based PIN hashing instead of storing the PIN as plain text. Users should still protect their devices, secure their cloud credentials, and maintain their own backups.
+### 1. Frontend & Antarmuka Komponen
+* **Next.js 16 (App Router):** Menggunakan static export (`output: 'export'`) sehingga seluruh bundle web dapat disajikan langsung oleh WebView lokal Android tanpa membutuhkan node server runtime.
+* **React 19 & TypeScript 5:** Pengetikan kode ketat (*strict typing*) untuk menjamin konsistensi model data finansial, validasi kalkulasi, dan keandalan logika aplikasi.
+* **Tailwind CSS v4 & CSS Variables:** Menggunakan sistem token semantik dinamis (`var(--bg)`, `var(--surface)`, `var(--income)`, `var(--expense)`) yang diatur langsung oleh Theme Engine saat runtime.
+* **Framer Motion:** Mengelola animasi transisi halaman yang luwes, *spring physics* pada penekanan tombol numpad, serta animasi meluncur (*shared layoutId*) pada elemen navigasi tab.
 
-## 🛠️ Built With
+### 2. Penyimpanan Offline & Arsitektur Data
+* **Dexie.js (IndexedDB Wrapper):** Bertindak sebagai *single source of truth* untuk seluruh entitas lokal (`transactions`, `categories`, `wallets`, `budgets`, `goals`, `recurringRules`, `settings`).
+* **Reaktivitas UI (`useLiveQuery`):** Antarmuka pengguna secara otomatis diperbarui seketika (*real-time*) setiap kali ada mutasi data pada database IndexedDB tanpa perlu pemanggilan manual `fetch` atau re-render yang boros.
+* **Integritas Data:** Seluruh entitas memiliki UUID v4 unik, timestamp `createdAt` & `updatedAt`, serta menerapkan *soft-delete* (`deleted: true`) untuk mencegah hilangnya data secara tidak sengaja dan mendukung proses sinkronisasi delta.
 
-- **Next.js** — Application framework
-- **TypeScript** — Type-safe development
-- **Tailwind CSS** — Styling and responsive layouts
-- **shadcn/ui** — Interface components
-- **Dexie.js** — Local IndexedDB storage
-- **Supabase** — Optional authentication and cloud synchronization
-- **Recharts** — Financial charts and analytics
-- **next-themes** — Theme management
-- **Capacitor** — Android application integration
-- **GitHub Actions** — Automated Android builds
+### 3. Jembatan Native Android & Widget (Capacitor + Java)
+* **WidgetBridgePlugin (`Java`):** Plugin kustom Capacitor yang menghubungkan JavaScript runtime ke lapisan sistem Android. Setiap kali data transaksi berubah, snapshot ringkas berformat JSON dikirim ke Android `SharedPreferences`.
+* **BudgetoWidgetProvider (`AppWidgetProvider`):** Merender tata letak widget menggunakan Android `RemoteViews`. Widget tidak melakukan koneksi jaringan dan membaca data dari cache lokal secara instan, sehingga sangat hemat baterai.
+* **Deep Linking Handler:** Menangkap intent URI scheme `budgeto://add?type=...` untuk membuka aplikasi dan langsung memunculkan lembar pencatatan transaksi yang relevan.
 
-## 🎯 Our Goal
+### 4. Kriptografi & Keamanan
+* **PBKDF2 Password-Based Key Derivation:** Menggunakan standar kriptografi WebCrypto bawaan browser (`crypto.subtle`). PIN pengguna digabungkan dengan salt acak 16-byte kriptografis dan diulang sebanyak 100.000 iterasi hash SHA-256 sebelum diverifikasi.
 
-Budgeto aims to make personal finance management more approachable by combining practical financial tools, thoughtful design, offline accessibility, and user-focused privacy in one application.
+### 5. Otomatisasi Kompilasi (CI/CD)
+* **GitHub Actions Workflow:** Terkonfigurasi pada file `.github/workflows/build-apk.yml`. Setiap ada kode baru yang di-push ke branch `main`, runner Ubuntu akan menyiapkan JDK 21, Android SDK, mengekspor web statis via Bun, menyinkronkan aset Capacitor, dan mengompilasi APK debug siap pakai yang langsung dipublikasikan ke tab Releases.
 
-**Budgeto — Understand your money. Build better habits.**
+---
 
+## 💻 Menjalankan Proyek Secara Lokal
+
+Bagi pengembang yang ingin berkontribusi atau menjalankan Budgeto di lingkungan lokal:
+
+### Prasyarat
+* [Node.js](https://nodejs.org/) (v20+) atau [Bun](https://bun.sh/) (Disarankan)
+* [Git](https://git-scm.com/)
+
+### Langkah Instalasi
+
+1. **Clone repository:**
+   ```bash
+   git clone https://github.com/avoocreator/budgeto.git
+   cd budgeto
+   ```
+
+2. **Pasang dependensi:**
+   ```bash
+   bun install
+   ```
+
+3. **Jalankan development server:**
+   ```bash
+   bun run dev
+   ```
+   Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
+
+4. **Kompilasi build produksi web:**
+   ```bash
+   bun run build
+   ```
+
+5. **Sinkronisasi ke Android (Opsional, jika ingin mengedit kode Java):**
+   ```bash
+   bun x cap sync android
+   bun x cap open android
+   ```
+
+---
+
+## 📄 Lisensi
+
+Proyek ini dirilis di bawah lisensi [MIT License](LICENSE). Bebas digunakan, dipelajari, dan dikembangkan lebih lanjut.
+
+---
+
+<p align="center">
+  Dibuat dengan dedikasi oleh <a href="https://github.com/avoocreator"><b>Kira (Avoo Creator)</b></a><br />
+  <i>"Kendalikan keuanganmu, bangun kebiasaan yang lebih baik."</i>
+</p>
